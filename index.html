@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Vino Passport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NFC Ripple effect -->
+<div class="nfc-ripple" id="nfc-ripple"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════
+     SCREEN 1 — ONBOARDING
+══════════════════════════════════ -->
+<div class="screen active" id="screen-onboarding">
+  <div class="onboarding-inner">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+        <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="onboarding-eyebrow">Vini di Terra — 2025</div>
+    <h1 class="onboarding-title">Il tuo<br><em>Passaporto</em><br>del vino</h1>
+    <p class="onboarding-sub">Tocca le bottiglie, costruisci il tuo profilo sensoriale, porta a casa il ricordo di ogni assaggio.</p>
+
+    <div class="input-group">
+      <label class="input-label">Nome</label>
+      <input class="input-field" type="text" id="input-nome" placeholder="Come ti chiami?" autocomplete="given-name">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input class="input-field" type="email" id="input-email" placeholder="Per ricevere il tuo Wine DNA" autocomplete="email">
+    </div>
+
+    <button class="btn-primary" onclick="startPassport()">Inizia la degustazione →</button>
+
+    <div class="fiera-badge">
+      <div class="fiera-dot"></div>
+      <span class="fiera-name">Fiera attiva · Bari, 14 giugno 2025</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 2 — PASSAPORTO HOME
+══════════════════════════════════ -->
+<div class="screen" id="screen-home">
+  <div class="top-bar">
+    <div class="top-bar-logo">Vino <em>Passport</em></div>
+    <div class="tap-hint">
+      <div class="tap-hint-dot"></div>
+      <span>Tocca una bottiglia</span>
+    </div>
+  </div>
+
+  <div class="home-content" id="home-content">
+    <!-- Popolato da JS -->
+  </div>
+
+  <button class="demo-nfc-btn" onclick="simulateNfcTap()">
+    <span>⬡</span>
+    Simula tap NFC
+  </button>
+
+  <nav class="bottom-nav">
+    <button class="nav-tab active" onclick="showTab('passport')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+      Passaporto
+    </button>
+    <button class="nav-tab" onclick="showTab('dna')" id="nav-dna">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3c0 4 8 4 8 8s-8 4-8 8"/></svg>
+      Wine DNA
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 3 — DETTAGLIO VINO
+══════════════════════════════════ -->
+<div class="screen" id="screen-wine">
+  <div class="wine-hero" id="wine-hero">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <span class="wine-emoji-big" id="wine-emoji">🍷</span>
+    <div class="wine-detail-eyebrow" id="wine-cantina-label">Cantina</div>
+    <h1 class="wine-detail-name" id="wine-name">Nome vino</h1>
+    <div class="wine-detail-meta" id="wine-meta">Annata · Vitigno · Territorio</div>
+  </div>
+
+  <div class="wine-detail-content">
+    <p class="wine-desc" id="wine-desc">Descrizione del vino</p>
+
+    <div class="rating-section">
+      <div class="rating-section-title">La tua impressione</div>
+
+      <div class="slider-row">
+        <div class="slider-labels">
+          <span class="slider-label-name">Acidità</span>
+          <span class="slider-label-value" id="acidita-val">3</span>
+        </div>
+        <input type="range" min="1" max="5" value="3" id="slider-acidita" oninput="updateSlider('acidita', this.value)">
+        <div class="slider-ends"><span class="slider-end">Morbida</span><span class="slider-end">Tagliente</span></div>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-labels">
+          <span class="slider-label-name">Corpo</span>
+          <span class="slider-label-value" id="corpo-val">3</span>
+        </div>
+        <input type="range" min="1" max="5" value="3" id="slider-corpo" oninput="updateSlider('corpo', this.value)">
+        <div class="slider-ends"><span class="slider-end">Etéreo</span><span class="slider-end">Denso</span></div>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-labels">
+          <span class="slider-label-name">Persistenza</span>
+          <span class="slider-label-value" id="persistenza-val">3</span>
+        </div>
+        <input type="range" min="1" max="5" value="3" id="slider-persistenza" oninput="updateSlider('persistenza', this.value)">
+        <div class="slider-ends"><span class="slider-end">Breve</span><span class="slider-end">Lunghissima</span></div>
+      </div>
+    </div>
+
+    <div class="rating-section">
+      <div class="rating-section-title">Che emozione ti dà?</div>
+      <div class="emozione-grid" id="emozione-grid">
+        <div class="emo-chip" onclick="selectEmo(this, 'Sorpresa')">✦ Sorpresa</div>
+        <div class="emo-chip" onclick="selectEmo(this, 'Nostalgia')">◌ Nostalgia</div>
+        <div class="emo-chip" onclick="selectEmo(this, 'Energia')">↑ Energia</div>
+        <div class="emo-chip" onclick="selectEmo(this, 'Pace')">— Pace</div>
+        <div class="emo-chip" onclick="selectEmo(this, 'Complessità')">⊕ Complessità</div>
+        <div class="emo-chip" onclick="selectEmo(this, 'Radici')">◉ Radici</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wine-cta">
+    <button class="btn-secondary" onclick="requestContact()">
+      📬 Contattami
+    </button>
+    <button class="btn-save" onclick="saveWine()">
+      Salva nel passaporto →
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 4 — WINE DNA
+══════════════════════════════════ -->
+<div class="screen" id="screen-dna" style="position:relative; overflow-y:auto;">
+  <div class="dna-back" onclick="showTab('passport')" style="position:relative; top:auto; left:auto; margin: 16px 0 0 16px;">←</div>
+  <div class="dna-header">
+    <div class="dna-eyebrow">Il tuo profilo sensoriale</div>
+    <h1 class="dna-title">Wine DNA</h1>
+    <p class="dna-subtitle" id="dna-subtitle">Basato sui tuoi assaggi di oggi</p>
+  </div>
+
+  <div class="dna-content" id="dna-content">
+    <!-- Popolato da JS -->
+  </div>
+
+  <button class="share-btn" onclick="shareDNA()">↗ Condividi il tuo Wine DNA</button>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
