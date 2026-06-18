@@ -92,6 +92,40 @@ let queueIndex = 0;
 let pendingVinoId = null; // ID vino da aprire dopo onboarding (NFC URL routing)
 
 // ═══════════════════════════════════════════════════
+// LOCAL STORAGE
+// ═══════════════════════════════════════════════════
+function saveState() {
+  try {
+    const dataToSave = {
+      utente: state.utente,
+      assaggi: state.assaggi
+    };
+    localStorage.setItem('vinoPassportState', JSON.stringify(dataToSave));
+  } catch (e) {
+    console.error('Errore nel salvataggio in localStorage:', e);
+  }
+}
+
+function loadState() {
+  try {
+    const stored = localStorage.getItem('vinoPassportState');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.utente) state.utente = parsed.utente;
+      if (parsed.assaggi) {
+        state.assaggi = parsed.assaggi.map(a => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }));
+      }
+    }
+  } catch (e) {
+    console.error('Errore nel caricamento dal localStorage:', e);
+    localStorage.removeItem('vinoPassportState');
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════
 function showScreen(id) {
@@ -132,6 +166,7 @@ function startPassport() {
   }
 
   state.utente = { nome, email };
+  saveState();
 
   // NFC URL Routing: se c'è un vino pendente, aprilo direttamente
   if (pendingVinoId) {
@@ -228,6 +263,8 @@ function saveWine() {
   } else {
     state.assaggi.push(assaggio);
   }
+
+  saveState();
 
   showToast(`${vino.nome} salvato nel passaporto ✓`);
   setTimeout(() => {
@@ -464,6 +501,7 @@ function cleanURL() {
 }
 
 function init() {
+  loadState();
   const vinoId = getVinoFromURL();
   
   if (vinoId) {
