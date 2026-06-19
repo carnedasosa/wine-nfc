@@ -422,19 +422,30 @@ input[type="range"] {
   width: 100%;
   -webkit-appearance: none;
   appearance: none;
-  height: 3px;
-  background: var(--border-light);
+  height: 4px;
+  background: linear-gradient(to right, var(--gold) var(--val, 50%), var(--border-light) var(--val, 50%));
   border-radius: 2px;
   outline: none;
+  cursor: pointer;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 18px; height: 18px;
+  width: 22px; height: 22px;
   border-radius: 50%;
   background: var(--gold);
   cursor: pointer;
-  border: 2px solid var(--bg);
-  box-shadow: 0 2px 8px rgba(201,168,76,0.4);
+  border: 3px solid var(--bg);
+  box-shadow: 0 2px 10px rgba(201,168,76,0.3);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, background 0.2s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 14px rgba(201,168,76,0.5);
+}
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(201,168,76,0.2);
+  background: #e6c86e;
 }
 
 /* Emozione chips */
@@ -667,6 +678,22 @@ input[type="range"]::-webkit-slider-thumb {
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: rgba(122, 31, 46, 0.95); border-color: rgba(255,100,100,0.3); color: #fff; }
+
+/* ───── LOADING SPINNER ───── */
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 /* Nav bottom */
 .bottom-nav {
@@ -714,4 +741,324 @@ input[type="range"]::-webkit-slider-thumb {
 @keyframes ripple-out {
   0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.5); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(2.5); }
+}
+
+/* ───── INSTAGRAM STORY LIQUID GLASS ───── */
+.insta-story-hidden {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  font-family: 'DM Sans', 'Inter', sans-serif;
+}
+
+#insta-story-layout {
+  background: linear-gradient(135deg, #1f0b12 0%, #0d0d0d 50%, #3a1e0b 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  box-sizing: border-box;
+}
+
+/* Sfondo vibrante "Liquid Glass" animato/sfumato */
+.insta-bg-shapes {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.insta-bg-shapes::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: -200px;
+  width: 1200px;
+  height: 1200px;
+  background: radial-gradient(circle, rgba(201,168,76,0.3) 0%, transparent 60%);
+  border-radius: 50%;
+}
+.insta-bg-shapes::after {
+  content: '';
+  position: absolute;
+  bottom: -300px;
+  right: -300px;
+  width: 1400px;
+  height: 1400px;
+  background: radial-gradient(circle, rgba(122,31,46,0.35) 0%, transparent 60%);
+  border-radius: 50%;
+}
+
+.insta-glass-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 48px;
+  padding: 80px 60px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.insta-eyebrow {
+  font-size: 26px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #c9a84c;
+  text-align: center;
+  margin-bottom: -20px;
+  font-weight: 500;
+}
+
+.insta-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 90px;
+  font-weight: 300;
+  text-align: center;
+  color: #fff;
+  line-height: 1.1;
+  text-shadow: 0 8px 32px rgba(201,168,76,0.25);
+}
+
+.insta-header span {
+  font-style: italic;
+  color: #c9a84c;
+}
+
+.insta-dna-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 46px;
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.6;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.95);
+  padding: 0 20px;
+}
+
+.insta-stats {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 36px;
+  padding: 56px;
+}
+
+#insta-radar-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.insta-radar-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.insta-radar-label {
+  width: 280px;
+  font-size: 34px;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.insta-radar-track {
+  flex: 1;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.insta-radar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7a1f2e, #c9a84c);
+  border-radius: 9px;
+}
+
+.insta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+}
+
+.insta-tag {
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  color: #c9a84c;
+  font-size: 36px;
+  padding: 24px 56px;
+  border-radius: 100px;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.insta-footer {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 32px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   SETTINGS PANEL
+═══════════════════════════════════════════════════ */
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Gear button — cerchio sottile con icona SVG */
+.gear-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.gear-btn svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  transition: color 0.2s ease, transform 0.4s ease;
+}
+.gear-btn:hover {
+  border-color: var(--gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+.gear-btn:hover svg {
+  color: var(--gold);
+  transform: rotate(45deg);
+}
+.gear-btn:active {
+  transform: scale(0.92);
+}
+
+/* DNA top bar con back e gear */
+.dna-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
+}
+.dna-top-bar .dna-back {
+  position: static;
+  margin: 0;
+}
+
+/* Settings Overlay */
+.settings-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.settings-overlay.open {
+  display: block;
+  opacity: 1;
+}
+
+/* Settings Bottom Sheet */
+.settings-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg2);
+  border-top: 1px solid var(--border-light, rgba(255,255,255,0.08));
+  border-radius: 20px 20px 0 0;
+  padding: 12px 24px max(40px, env(safe-area-inset-bottom));
+  z-index: 201;
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+}
+.settings-panel.open {
+  transform: translateY(0);
+}
+
+/* Handle bar */
+.settings-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+  opacity: 0.5;
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.settings-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+.settings-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 50%;
+  line-height: 1;
+  transition: border-color 0.2s, color 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-close:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+/* Body & Footer */
+.settings-body {
+  margin-bottom: 24px;
+}
+.settings-footer .btn-primary {
+  width: 100%;
 }

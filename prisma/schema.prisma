@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  nome      String?
+  email     String?  @unique
+  createdAt DateTime @default(now())
+
+  tastings Tasting[]
+}
+
+model Wine {
+  id         String  @id @default(uuid())
+  nome       String
+  cantina    String
+  annata     String?
+  vitigno    String?
+  territorio String?
+  tipo       String?
+  emoji      String?
+  desc       String?
+  colore     String?
+
+  tastings Tasting[]
+}
+
+model Tasting {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  wineId String
+  wine   Wine   @relation(fields: [wineId], references: [id])
+
+  acidita     Int
+  corpo       Int
+  persistenza Int
+  emozione    String
+  createdAt   DateTime @default(now())
+}

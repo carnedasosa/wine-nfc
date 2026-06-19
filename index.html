@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -20,9 +21,19 @@
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════════════════════════
+     SCREEN 0 — LOADING
+══════════════════════════════════ -->
+<div class="screen active" id="screen-loading">
+  <div class="onboarding-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
+    <div class="loading-spinner"></div>
+    <p style="margin-top:20px; color:var(--text-muted); font-size:16px; font-style:italic;">Connessione alla cantina in corso...</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      SCREEN 1 — ONBOARDING
 ══════════════════════════════════ -->
-<div class="screen active" id="screen-onboarding">
+<div class="screen" id="screen-onboarding">
   <div class="onboarding-inner">
     <div class="logo-mark">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -31,7 +42,7 @@
         <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
       </svg>
     </div>
-    <div class="onboarding-eyebrow">Vini di Terra — 2025</div>
+    <div class="onboarding-eyebrow">Sovranaturale 2026</div>
     <h1 class="onboarding-title">Il tuo<br><em>Passaporto</em><br>del vino</h1>
     <p class="onboarding-sub">Tocca le bottiglie, costruisci il tuo profilo sensoriale, porta a casa il ricordo di ogni assaggio.</p>
 
@@ -59,9 +70,17 @@
 <div class="screen" id="screen-home">
   <div class="top-bar">
     <div class="top-bar-logo">Vino <em>Passport</em></div>
-    <div class="tap-hint">
-      <div class="tap-hint-dot"></div>
-      <span>Tocca una bottiglia</span>
+    <div class="top-bar-right">
+      <div class="tap-hint">
+        <div class="tap-hint-dot"></div>
+        <span>Tocca una bottiglia</span>
+      </div>
+      <button class="gear-btn" onclick="openSettings()" aria-label="Impostazioni profilo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -109,7 +128,7 @@
           <span class="slider-label-name">Acidità</span>
           <span class="slider-label-value" id="acidita-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-acidita" oninput="updateSlider('acidita', this.value)">
+        <input type="range" min="1" max="5" value="3" id="slider-acidita" style="--val: 50%;" oninput="updateSlider('acidita', this)">
         <div class="slider-ends"><span class="slider-end">Morbida</span><span class="slider-end">Tagliente</span></div>
       </div>
 
@@ -118,7 +137,7 @@
           <span class="slider-label-name">Corpo</span>
           <span class="slider-label-value" id="corpo-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-corpo" oninput="updateSlider('corpo', this.value)">
+        <input type="range" min="1" max="5" value="3" id="slider-corpo" style="--val: 50%;" oninput="updateSlider('corpo', this)">
         <div class="slider-ends"><span class="slider-end">Etéreo</span><span class="slider-end">Denso</span></div>
       </div>
 
@@ -127,7 +146,7 @@
           <span class="slider-label-name">Persistenza</span>
           <span class="slider-label-value" id="persistenza-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-persistenza" oninput="updateSlider('persistenza', this.value)">
+        <input type="range" min="1" max="5" value="3" id="slider-persistenza" style="--val: 50%;" oninput="updateSlider('persistenza', this)">
         <div class="slider-ends"><span class="slider-end">Breve</span><span class="slider-end">Lunghissima</span></div>
       </div>
     </div>
@@ -159,7 +178,15 @@
      SCREEN 4 — WINE DNA
 ══════════════════════════════════ -->
 <div class="screen" id="screen-dna" style="position:relative; overflow-y:auto;">
-  <div class="dna-back" onclick="showTab('passport')" style="position:relative; top:auto; left:auto; margin: 16px 0 0 16px;">←</div>
+  <div class="dna-top-bar">
+    <div class="dna-back" onclick="showTab('passport')">←</div>
+    <button class="gear-btn" onclick="openSettings()" aria-label="Impostazioni profilo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
   <div class="dna-header">
     <div class="dna-eyebrow">Il tuo profilo sensoriale</div>
     <h1 class="dna-title">Wine DNA</h1>
@@ -173,6 +200,61 @@
   <button class="share-btn" onclick="shareDNA()">↗ Condividi il tuo Wine DNA</button>
 </div>
 
+<!-- ═══════════════════════════════
+     HIDDEN INSTAGRAM STORY LAYOUT
+══════════════════════════════════ -->
+<div id="insta-story-layout" class="insta-story-hidden">
+  <!-- Sfondo vibrante "Liquid Glass" -->
+  <div class="insta-bg-shapes"></div>
+  
+  <div class="insta-glass-card">
+    <div class="insta-eyebrow">Il mio profilo sensoriale</div>
+    <div class="insta-header">Wine DNA di <span id="insta-user-name"></span></div>
+    
+    <div id="insta-dna-text" class="insta-dna-text">
+      <!-- Paragrafo AI iniettato qui -->
+    </div>
+    
+    <div class="insta-stats">
+      <div id="insta-radar-bars">
+        <!-- Barre acidità, corpo, persistenza iniettate qui -->
+      </div>
+    </div>
+    
+    <div id="insta-tags-container" class="insta-tags">
+      <!-- Tag (es. Vini tesi, Nostalgia, ecc.) iniettati qui -->
+    </div>
+  </div>
+  
+  <div class="insta-footer">Sovranaturale 2026</div>
+</div>
+
+<!-- ═══════════════════════════════
+     SETTINGS PANEL
+══════════════════════════════════ -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-label="Impostazioni profilo">
+  <div class="settings-handle"></div>
+  <div class="settings-header">
+    <h2 class="settings-title">Il tuo profilo</h2>
+    <button class="settings-close" onclick="closeSettings()" aria-label="Chiudi impostazioni">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="input-group">
+      <label class="input-label" for="settings-nome">Nome</label>
+      <input class="input-field" type="text" id="settings-nome" placeholder="Il tuo nome" autocomplete="given-name">
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="settings-email">Email</label>
+      <input class="input-field" type="email" id="settings-email" placeholder="La tua email" autocomplete="email">
+    </div>
+  </div>
+  <div class="settings-footer">
+    <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Salva modifiche →</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>
