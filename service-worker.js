@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vino-passport-static-v2';
+const CACHE_NAME = 'vino-passport-static-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
