@@ -1,4 +1,4 @@
-﻿# Guida al Testing dei Tag NFC
+# Guida al Testing dei Tag NFC
 
 Benvenuto nella guida passo-passo per la configurazione e il testing dei tag NFC per la nostra applicazione. Segui attentamente queste istruzioni per assicurarti che il tuo ambiente e i tag funzionino correttamente.
 
@@ -44,7 +44,7 @@ http://<TUO_IP_LOCALE>:3000/?vino=<ID_VINO>
 > Sostituisci <TUO_IP_LOCALE> con l'indirizzo IPv4 trovato al Passo 2.
 > Sostituisci <ID_VINO> con uno degli ID vino validi.
 > 
-> **Valori ammessi per ino:** 1, 2, 3, 4, 5
+> **Valori ammessi per vino:** v1, v2, v3, v4, v5, v6
 
 **Esempio pratico:** Se il tuo IP è 192.168.1.55 e vuoi creare un tag per il primo vino, l'URL esatto da usare sarà:
 http://192.168.1.55:3000/?vino=v1

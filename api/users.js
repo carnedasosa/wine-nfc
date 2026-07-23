@@ -9,47 +9,30 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * Handler per PUT /api/users/:id
+ *
+ * Aggiorna nome e/o email dell'utente autenticato.
+ * Il middleware JWT garantisce che req.userId corrisponde al token firmato;
+ * aggiungiamo un controllo esplicito che l'utente stia modificando solo
+ * il proprio profilo (prevenendo privilege escalation orizzontale).
+ *
+ * La registrazione/login è ora gestita da /api/auth/login (api/auth.js).
+ */
 module.exports = async function(req, res) {
 
-  // ── POST /api/users ──────────────────────────────────────────────────────
-  // Crea un nuovo utente o restituisce quello esistente con la stessa email.
-  if (req.method === 'POST') {
-    try {
-      const { nome, email } = req.body;
-
-      if (!nome || !email) {
-        return res.status(400).json({ error: 'Nome e email sono obbligatori' });
-      }
-
-      let user = await prisma.user.findUnique({
-        where: { email: email }
-      });
-
-      if (user) {
-        return res.status(200).json(user);
-      } else {
-        user = await prisma.user.create({
-          data: {
-            nome: nome,
-            email: email
-          }
-        });
-        return res.status(201).json(user);
-      }
-    } catch (error) {
-      console.error('Error in POST /api/users:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-
-  // ── PUT /api/users/:id ───────────────────────────────────────────────────
-  // Aggiorna nome e/o email di un utente esistente.
+  // ── PUT /api/users/:id ────────────────────────────────────────────────
   if (req.method === 'PUT') {
     try {
       const id = req.params.id;
 
       if (!id) {
         return res.status(400).json({ error: 'ID utente mancante' });
+      }
+
+      // Controllo di proprietà: un utente può modificare solo se stesso
+      if (id !== req.userId) {
+        return res.status(403).json({ error: 'Non autorizzato a modificare questo profilo' });
       }
 
       const { nome, email } = req.body;
@@ -98,6 +81,6 @@ module.exports = async function(req, res) {
     }
   }
 
-  // ── Metodo non supportato ────────────────────────────────────────────────
+  // ── Metodo non supportato ─────────────────────────────────────────────
   return res.status(405).json({ error: 'Method not allowed' });
 };

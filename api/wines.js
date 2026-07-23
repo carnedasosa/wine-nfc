@@ -1,4 +1,4 @@
-﻿const prisma = require('../lib/prisma');
+const prisma = require('../lib/prisma');
 
 module.exports = async function(req, res) {
   if (req.method !== 'GET') {
@@ -6,7 +6,12 @@ module.exports = async function(req, res) {
   }
 
   try {
-    const wines = await prisma.wine.findMany();
+    const wines = await prisma.wine.findMany({
+      orderBy: [
+        { nome: 'asc' },
+        { id: 'asc' }
+      ]
+    });
     return res.status(200).json(wines);
   } catch (error) {
     console.error('Error in /api/wines:', error);

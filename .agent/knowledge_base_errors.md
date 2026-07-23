@@ -29,3 +29,10 @@
 - **Agente Responsabile:** The Engine
 - **Descrizione:** Dopo l'aggiornamento a Express 5, l'endpoint API `/api/wines` restituiva `404 Not Found`. Il middleware `app.use(express.static('.'))` registrato *prima* delle route API intercettava la chiamata. Essendo presente fisicamente la cartella `api/` nel filesystem, restituiva 404 senza passare al middleware successivo.
 - **Soluzione:** Registrare sempre le route API (`app.all('/api/...', ...)`) **prima** del middleware `express.static`. L'ordine di dichiarazione è cruciale per evitare intercettazioni non volute da parte del file server statico.
+
+## Errore 007: "Sessione non valida, utente mancante" al salvataggio vino
+- **Agente Responsabile:** N/A (bug di migrazione)
+- **Descrizione:** Quando l'utente tenta di salvare un vino, `saveWine()` (app.js:208) verifica `state.utente.id`. Se l'onboarding è stato completato **prima** dell'integrazione con il backend API (`/api/users`), il `localStorage` contiene solo `{ nome, email }` senza il campo `id` restituito dal server. Al reload, `loadState()` ripristina questi dati incompleti e il check fallisce con il toast "Sessione non valida, utente mancante".
+- **Causa root:** Disallineamento tra lo stato iniziale (`{ nome: '', email: '' }`, senza `id` — app.js:10) e il check di validazione (`state.utente.id` — app.js:208). I dati pre-backend nel localStorage non includono `id`.
+- **Soluzione temporanea:** Cancellare il localStorage dal browser: `localStorage.removeItem('vinoPassportState'); location.reload();` e ripetere l'onboarding.
+- **Soluzione definitiva:** In `loadState()`, verificare che `state.utente` contenga il campo `id`. Se manca, forzare una ri-registrazione trasparente via API (`POST /api/users` con nome/email esistenti) per ottenere l'`id`, oppure invalidare la sessione e mostrare l'onboarding.

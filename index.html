@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0d0d0d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -47,11 +47,11 @@
     <p class="onboarding-sub">Tocca le bottiglie, costruisci il tuo profilo sensoriale, porta a casa il ricordo di ogni assaggio.</p>
 
     <div class="input-group">
-      <label class="input-label">Nome</label>
+      <label class="input-label" for="input-nome">Nome</label>
       <input class="input-field" type="text" id="input-nome" placeholder="Come ti chiami?" autocomplete="given-name">
     </div>
     <div class="input-group">
-      <label class="input-label">Email</label>
+      <label class="input-label" for="input-email">Email</label>
       <input class="input-field" type="email" id="input-email" placeholder="Per ricevere il tuo Wine DNA" autocomplete="email">
     </div>
 
@@ -101,6 +101,10 @@
     <button class="nav-tab" onclick="showTab('dna')" id="nav-dna">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3c0 4 8 4 8 8s-8 4-8 8"/></svg>
       Wine DNA
+    </button>
+    <button class="nav-tab" onclick="showTab('leaderboard')" id="nav-leaderboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-4"/><path d="M4 20h16"/></svg>
+      Classifica
     </button>
   </nav>
 </div>
@@ -201,6 +205,24 @@
 </div>
 
 <!-- ═══════════════════════════════
+     SCREEN 5 — LEADERBOARD
+══════════════════════════════════ -->
+<div class="screen" id="screen-leaderboard">
+  <div class="dna-top-bar">
+    <div class="dna-back" onclick="showTab('passport')">←</div>
+  </div>
+  <div class="dna-header">
+    <div class="dna-eyebrow">Top Assaggiatori</div>
+    <h1 class="dna-title">Classifica Live</h1>
+    <p class="dna-subtitle">Chi assaggerà più vini oggi?</p>
+  </div>
+
+  <div class="leaderboard-content" id="leaderboard-content">
+    <!-- Popolato da JS -->
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      HIDDEN INSTAGRAM STORY LAYOUT
 ══════════════════════════════════ -->
 <div id="insta-story-layout" class="insta-story-hidden">
@@ -255,6 +277,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-<script src="app.js" defer></script>
+<script src="app.js" type="module"></script>
 </body>
 </html>

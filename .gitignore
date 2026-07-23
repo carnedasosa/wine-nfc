@@ -1,3 +1,4 @@
 node_modules/
 prisma/dev.db
 .env
+password-supabase.txt

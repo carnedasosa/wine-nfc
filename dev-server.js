@@ -1,17 +1,23 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const path = require('path');
+const auth = require('./api/middleware/auth');
 
 app.use(express.json());
 
-// Mappa manualmente le Serverless Functions di Vercel agli handler locali
+// ── Route pubbliche (nessun token richiesto) ─────────────────────────────────
 // IMPORTANTE: Le route API devono essere registrate PRIMA di express.static,
 // altrimenti Express 5 intercetta le richieste /api/* cercando file statici
 // nella cartella api/ del progetto e restituisce 404.
 app.all('/api/wines', require('./api/wines'));
-app.all('/api/users', require('./api/users'));
-app.all('/api/users/:id', require('./api/users')); // Settings: PUT per aggiornamento profilo
-app.all('/api/tastings', require('./api/tastings'));
+app.post('/api/auth/login', require('./api/auth'));
+app.get('/api/leaderboard', require('./api/leaderboard'));
+
+// ── Route protette (richiedono JWT valido) ───────────────────────────────────
+app.all('/api/tastings', auth, require('./api/tastings'));
+app.all('/api/dna', auth, require('./api/dna'));
+app.put('/api/users/:id', auth, require('./api/users'));
 
 // Servi i file statici (index.html, style.css, app.js, ecc.) dalla cartella corrente
 app.use(express.static(path.join(__dirname, '.')));

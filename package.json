@@ -1,12 +1,14 @@
 {
-  "name": "subagent-backend-logic-and-configuration-the-engine-a25abe70",
+  "name": "vino-passport",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node dev-server.js",
     "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "prisma:validate": "prisma validate",
+    "prisma:seed": "node prisma/seed.js",
+    "test": "vitest run",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate"
   },
@@ -16,9 +18,11 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "jsonwebtoken": "^9.0.3",
     "prisma": "^6.19.3"
   },
   "devDependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "vitest": "^4.1.9"
   }
 }

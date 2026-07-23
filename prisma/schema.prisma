@@ -46,4 +46,7 @@ model Tasting {
   persistenza Int
   emozione    String
   createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([wineId])
 }
