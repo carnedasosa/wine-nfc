@@ -1,4 +1,6 @@
-module.exports = async function(req, res) {
+const { withAuth } = require('../lib/auth');
+
+module.exports = withAuth(async function(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -63,4 +65,4 @@ Rispondi SOLO con il paragrafo, nessun titolo o introduzione.`;
     // Non facciamo crashare l'app per un errore dell'AI, restituiamo il fallback
     return res.status(200).json({ dnaText: generaDNAFallback(), fallback: true });
   }
-};
+});

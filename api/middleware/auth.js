@@ -1,11 +1,6 @@
-require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET non è definito nelle variabili d\'ambiente. Aggiungerlo al file .env.');
-}
 
 /**
  * Middleware Express che verifica il token JWT nell'header Authorization.

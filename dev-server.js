@@ -11,13 +11,18 @@ app.use(express.json());
 // altrimenti Express 5 intercetta le richieste /api/* cercando file statici
 // nella cartella api/ del progetto e restituisce 404.
 app.all('/api/wines', require('./api/wines'));
-app.post('/api/auth/login', require('./api/auth'));
+app.post('/api/auth/login', require('./api/auth/login'));
 app.get('/api/leaderboard', require('./api/leaderboard'));
 
 // ── Route protette (richiedono JWT valido) ───────────────────────────────────
 app.all('/api/tastings', auth, require('./api/tastings'));
 app.all('/api/dna', auth, require('./api/dna'));
-app.put('/api/users/:id', auth, require('./api/users'));
+app.put('/api/users/:id', auth, (req, res) => {
+  // Shim: Express usa req.params, Vercel usa req.query
+  req.query = req.query || {};
+  req.query.id = req.params.id;
+  require('./api/users/[id]')(req, res);
+});
 
 // Servi i file statici (index.html, style.css, app.js, ecc.) dalla cartella corrente
 app.use(express.static(path.join(__dirname, '.')));

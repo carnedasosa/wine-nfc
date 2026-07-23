@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { withAuth } = require('../lib/auth');
 
 function isValidRating(val) {
   if (val === undefined || val === null) return false;
@@ -13,7 +14,7 @@ function isValidRating(val) {
  * viene letto esclusivamente da req.userId, iniettato dal middleware JWT.
  * Questo elimina l'IDOR (Insecure Direct Object Reference) precedente.
  */
-module.exports = async function(req, res) {
+module.exports = withAuth(async function(req, res) {
   // ── GET /api/tastings ─────────────────────────────────────────────────
   if (req.method === 'GET') {
     try {
@@ -69,4 +70,4 @@ module.exports = async function(req, res) {
     }
     return res.status(500).json({ error: 'Internal server error' });
   }
-};
+});
