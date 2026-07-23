@@ -1,15 +1,16 @@
 :root {
-  --bg: #0d0d0d;
-  --bg2: #141414;
-  --bg3: #1a1a1a;
-  --border: rgba(255,255,255,0.08);
-  --border-light: rgba(255,255,255,0.14);
+  /* Palette "Cantina Notturna" - Calda e organica */
+  --bg: #110e0d;
+  --bg2: #1a1514;
+  --bg3: #241e1c;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.14);
   --text: #f0ece4;
-  --text-muted: rgba(240,236,228,0.45);
-  --text-dim: rgba(240,236,228,0.25);
+  --text-muted: rgba(240, 236, 228, 0.65); /* Aumentato per visibilità solare */
+  --text-dim: rgba(240, 236, 228, 0.35);
   --gold: #c9a84c;
-  --gold-soft: rgba(201,168,76,0.15);
-  --gold-dim: rgba(201,168,76,0.08);
+  --gold-soft: rgba(201, 168, 76, 0.15);
+  --gold-dim: rgba(201, 168, 76, 0.08);
   --red-wine: #7a1f2e;
   --radius: 14px;
   --radius-sm: 8px;
@@ -20,10 +21,20 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 14px;
   min-height: 100dvh;
   overflow-x: hidden;
+}
+
+/* Texture ruvida organica per simulare carta/etichetta */
+.noise-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.035;
 }
 
 *:focus-visible {
@@ -354,19 +365,23 @@ body {
 }
 
 .back-btn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 36px; height: 36px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border);
+  position: fixed; /* Fissato per non perderlo scrollando giù con una mano */
+  top: 20px;
+  left: 20px;
+  width: 44px; height: 44px; /* Touch target più ampio per pollice */
+  background: rgba(17, 14, 13, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--text);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .wine-emoji-big {
@@ -685,19 +700,48 @@ input[type="range"]:active::-webkit-slider-thumb {
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { background: rgba(122, 31, 46, 0.95); border-color: rgba(255,100,100,0.3); color: #fff; }
 
-/* ───── LOADING SPINNER ───── */
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border-light);
-  border-top-color: var(--gold);
+/* ───── LOADING SPINNER E ANIMAZIONI ───── */
+.wine-breathing-loader {
+  width: 56px; height: 56px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  background: radial-gradient(circle at 30% 30%, var(--red-wine), #3a0d15);
+  box-shadow: 0 0 20px rgba(122,31,46,0.4);
+  animation: breathe 2s ease-in-out infinite alternate;
+  margin: 0 auto;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes breathe {
+  0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 10px rgba(122,31,46,0.2); }
+  100% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 35px rgba(122,31,46,0.7); }
+}
+
+.loading-text-carousel {
+  position: relative;
+  height: 28px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.loading-text-carousel span {
+  position: absolute;
+  top: 0; left: 0; width: 100%;
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-style: italic;
+  color: var(--gold);
+  opacity: 0;
+  animation: fadeText 7.5s infinite;
+}
+
+.loading-text-carousel span:nth-child(1) { animation-delay: 0s; }
+.loading-text-carousel span:nth-child(2) { animation-delay: 2.5s; }
+.loading-text-carousel span:nth-child(3) { animation-delay: 5s; }
+
+@keyframes fadeText {
+  0% { opacity: 0; transform: translateY(6px); }
+  8%, 25% { opacity: 1; transform: translateY(0); }
+  33%, 100% { opacity: 0; transform: translateY(-6px); }
 }
 
 /* Nav bottom */
@@ -737,15 +781,25 @@ input[type="range"]:active::-webkit-slider-thumb {
   border: 2px solid var(--gold);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 50;
+  z-index: 999;
   opacity: 0;
 }
 .nfc-ripple.animate {
-  animation: ripple-out 0.6s ease-out forwards;
+  animation: nfc-magic 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
-@keyframes ripple-out {
-  0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.5); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.5); }
+@keyframes nfc-magic {
+  0% { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(0.2); 
+    border-width: 40px; 
+  }
+  100% { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(8); 
+    border-width: 1px; 
+    box-shadow: inset 0 0 60px rgba(201,168,76,0.6), 0 0 100px rgba(201,168,76,0.4); 
+    background: rgba(201,168,76,0.15); 
+  }
 }
 
 /* ───── INSTAGRAM STORY LIQUID GLASS ───── */

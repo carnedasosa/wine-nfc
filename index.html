@@ -8,12 +8,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Vino Passport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
+<!-- Noise texture per effetto tattile organico -->
+<div class="noise-overlay"></div>
 <!-- NFC Ripple effect -->
 <div class="nfc-ripple" id="nfc-ripple"></div>
 
@@ -25,8 +27,12 @@
 ══════════════════════════════════ -->
 <div class="screen active" id="screen-loading">
   <div class="onboarding-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
-    <div class="loading-spinner"></div>
-    <p style="margin-top:20px; color:var(--text-muted); font-size:16px; font-style:italic;">Connessione alla cantina in corso...</p>
+    <div class="wine-breathing-loader"></div>
+    <div class="loading-text-carousel">
+      <span>Versando nel calice...</span>
+      <span>Svegliando i profumi...</span>
+      <span>Decifrando il Wine DNA...</span>
+    </div>
   </div>
 </div>
 
