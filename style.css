@@ -500,8 +500,12 @@ input[type="range"]:active::-webkit-slider-thumb {
   gap: 10px;
 }
 
-.btn-secondary {
+.wine-cta .btn-secondary {
   flex: 1;
+}
+
+.btn-secondary {
+  width: 100%;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
