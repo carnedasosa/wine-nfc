@@ -48,11 +48,15 @@ export function showTab(tab, { renderHome, renderDNA, renderLeaderboard }) {
 
 export function getVinoFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('vino');
+  return {
+    vino: params.get('vino'),
+    eventId: params.get('eventId') || 'legacy-event-id' // Default to legacy event if none provided
+  };
 }
 
 export function cleanURL() {
   const url = new URL(window.location.href);
   url.searchParams.delete('vino');
+  url.searchParams.delete('eventId');
   window.history.replaceState({}, document.title, url.toString());
 }

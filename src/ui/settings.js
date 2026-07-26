@@ -1,9 +1,11 @@
 // ═══════════════════════════════════════════════════
-// UI / SETTINGS — pannello profilo utente
+// UI / SETTINGS — profilo e chiusura sessione
 // ═══════════════════════════════════════════════════
 
-import { state, saveState } from '../state.js';
+import { clearUserState, setAuthenticatedUser, state } from '../state.js';
 import { API } from '../api.js';
+import { clearDnaCache, renderDNA } from './dna.js';
+import { clearLeaderboardCache } from './leaderboard.js';
 import { showToast } from '../utils.js';
 
 export function openSettings() {
@@ -11,10 +13,13 @@ export function openSettings() {
     showToast('Completa il profilo prima di modificarlo', 'error');
     return;
   }
-  document.getElementById('settings-nome').value = state.utente.nome || '';
+
+  const nameInput = document.getElementById('settings-nome');
   document.getElementById('settings-email').value = state.utente.email || '';
+  nameInput.value = state.utente.nome || '';
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
+  nameInput.focus();
 }
 
 export function closeSettings() {
@@ -24,50 +29,59 @@ export function closeSettings() {
 
 export async function saveSettings() {
   const nome = document.getElementById('settings-nome').value.trim();
-  const email = document.getElementById('settings-email').value.trim();
-  const btn = document.getElementById('settings-save-btn');
+  const button = document.getElementById('settings-save-btn');
+  if (button.disabled) return;
 
-  if (!nome) {
-    showToast('Il nome non può essere vuoto', 'error');
-    return;
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email)) {
-    showToast('Inserisci un indirizzo email valido', 'error');
+  if (!nome || nome.length > 60) {
+    showToast('Il nome deve contenere da 1 a 60 caratteri', 'error');
     return;
   }
 
-  // Nessuna modifica — chiudi senza fetch
-  if (nome === state.utente.nome && email === state.utente.email) {
+  if (nome === state.utente.nome) {
     closeSettings();
     return;
   }
 
   if (!state.utente.id) {
-    showToast('Sessione non valida. Ricarica la pagina.', 'error');
+    showToast('Sessione non valida. Accedi di nuovo.', 'error');
     return;
   }
 
-  if (btn) btn.disabled = true;
-
+  button.disabled = true;
   try {
-    const data = await API.updateUser(state.utente.id, nome, email);
-
-    state.utente.nome = data.nome;
-    state.utente.email = data.email;
-    saveState();
-
-    // Aggiorna live il subtitle del DNA se visibile
-    const dnaSub = document.getElementById('dna-subtitle');
-    if (dnaSub && dnaSub.textContent.includes('assaggi di')) {
-      dnaSub.textContent = `Basato su ${state.assaggi.length} assaggi di ${data.nome}`;
+    const result = await API.updateUser(state.utente.id, nome);
+    const user = result?.user || result;
+    setAuthenticatedUser(user);
+    clearDnaCache();
+    clearLeaderboardCache();
+    if (document.getElementById('screen-dna')?.classList.contains('active')) {
+      void renderDNA();
     }
 
     closeSettings();
     showToast('Profilo aggiornato ✓');
-  } catch (e) {
-    showToast(e.data?.error || 'Errore di connessione. Riprova.', 'error');
+  } catch (error) {
+    showToast(error.message || 'Errore di connessione. Riprova.', 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    button.disabled = false;
+  }
+}
+
+export async function logout() {
+  const button = document.getElementById('settings-logout-btn');
+  button.disabled = true;
+
+  try {
+    await API.logout();
+    clearUserState();
+    clearDnaCache();
+    clearLeaderboardCache();
+    closeSettings();
+    window.dispatchEvent(new CustomEvent('vino:logged-out'));
+  } catch (error) {
+    console.error('Logout server-side non riuscito:', error);
+    showToast('Impossibile chiudere la sessione. Riprova.', 'error');
+  } finally {
+    button.disabled = false;
   }
 }

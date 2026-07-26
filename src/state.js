@@ -1,122 +1,68 @@
 // ═══════════════════════════════════════════════════
-// STATE — sorgente unica di verità
+// STATE — stato volatile; l'identità arriva dal server
 // ═══════════════════════════════════════════════════
 
 export let viniDB = [];
 
-export let state = {
-  utente: { nome: '', email: '' },
+export const state = {
+  utente: { id: '', nome: '', email: '' },
   assaggi: [],
   vinoCorrente: null,
   emozioneSelezionata: null,
-  viniQueue: []
+  viniQueue: [],
+  eventId: 'legacy-event-id'
 };
 
 export let pendingVinoId = null;
+
+const LEGACY_STORAGE_KEYS = Object.freeze([
+  'vinoPassportToken',
+  'vinoPassportState'
+]);
+
+export function clearLegacyClientStorage(storage) {
+  if (storage === undefined) {
+    try { storage = globalThis.localStorage; } catch { return; }
+  }
+  if (!storage || typeof storage.removeItem !== 'function') return;
+  for (const key of LEGACY_STORAGE_KEYS) {
+    try { storage.removeItem(key); } catch { /* Storage può essere disabilitato. */ }
+  }
+}
+
+// Bonifica one-shot dei JWT e dei dati personali lasciati dalle versioni pre-M1.
+try { clearLegacyClientStorage(); } catch { /* Nessun Web Storage disponibile. */ }
 
 export function setPendingVinoId(id) {
   pendingVinoId = id;
 }
 
 export function setViniDB(vini) {
-  viniDB = vini;
-  state.viniQueue = [...vini];
+  viniDB = Array.isArray(vini) ? vini : [];
+  state.viniQueue = [...viniDB];
 }
 
-// ═══════════════════════════════════════════════════
-// TOKEN JWT
-// ═══════════════════════════════════════════════════
-
-const TOKEN_KEY = 'vinoPassportToken';
-
-/**
- * Salva il JWT in localStorage.
- * @param {string} token
- */
-export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+export function setAuthenticatedUser(user) {
+  state.utente = {
+    id: user?.id || '',
+    nome: user?.nome || '',
+    email: user?.email || ''
+  };
 }
 
-/**
- * Recupera il JWT da localStorage.
- * @returns {string|null}
- */
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+export function clearUserState() {
+  clearLegacyClientStorage();
+  state.utente = { id: '', nome: '', email: '' };
+  state.assaggi = [];
+  state.vinoCorrente = null;
+  state.emozioneSelezionata = null;
+  pendingVinoId = null;
 }
 
 /**
- * Cancella il JWT da localStorage (logout).
- */
-export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-/**
- * Restituisce true se esiste un token salvato.
- * Non verifica la firma (operazione lato server).
- * @returns {boolean}
- */
-export function isAuthenticated() {
-  return !!getToken();
-}
-
-// ═══════════════════════════════════════════════════
-// PERSISTENZA LOCALE
-// ═══════════════════════════════════════════════════
-
-export function saveState() {
-  try {
-    const dataToSave = {
-      utente: state.utente,
-      assaggi: state.assaggi
-    };
-    localStorage.setItem('vinoPassportState', JSON.stringify(dataToSave));
-  } catch (e) {
-    console.error('Errore nel salvataggio in localStorage:', e);
-  }
-}
-
-/**
- * Carica lo stato da localStorage. Se l'utente ha un id e un token valido,
- * delega il fetch degli assaggi alla funzione passata come parametro
- * (così state.js non dipende da api.js — Dependency Inversion).
- *
- * Il parametro fetchTastings non riceve più userId: il token JWT allegato
- * automaticamente dagli header in API.getTastings() identifica l'utente.
- *
- * @param {() => Promise<Array>} fetchTastings
+ * Sincronizza i dati solo dopo che /api/auth/session ha confermato l'identità.
+ * Nessun dato in Web Storage viene usato come prova di autenticazione.
  */
 export async function loadState(fetchTastings) {
-  try {
-    const stored = localStorage.getItem('vinoPassportState');
-    if (!stored) return;
-
-    const parsed = JSON.parse(stored);
-    if (parsed.utente) state.utente = parsed.utente;
-
-    if (state.utente && state.utente.id && getToken()) {
-      try {
-        const tastings = await fetchTastings();
-        state.assaggi = tastings;
-        saveState();
-      } catch (e) {
-        console.error('Sync assaggi fallito, uso cache locale:', e);
-        if (parsed.assaggi) {
-          state.assaggi = parsed.assaggi.map(a => ({
-            ...a,
-            timestamp: new Date(a.timestamp)
-          }));
-        }
-      }
-    } else if (parsed.assaggi) {
-      state.assaggi = parsed.assaggi.map(a => ({
-        ...a,
-        timestamp: new Date(a.timestamp)
-      }));
-    }
-  } catch (e) {
-    console.error('Errore nel caricamento dal localStorage:', e);
-    localStorage.removeItem('vinoPassportState');
-  }
+  state.assaggi = state.utente.id ? await fetchTastings(state.eventId) : [];
 }

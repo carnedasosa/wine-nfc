@@ -1,38 +1,59 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
 const path = require('path');
-const auth = require('./api/middleware/auth');
+const os = require('os');
+const { applySecurityHeaders } = require('./lib/http-security');
 
-app.use(express.json());
+const app = express();
 
-// ── Route pubbliche (nessun token richiesto) ─────────────────────────────────
-// IMPORTANTE: Le route API devono essere registrate PRIMA di express.static,
-// altrimenti Express 5 intercetta le richieste /api/* cercando file statici
-// nella cartella api/ del progetto e restituisce 404.
+app.use((req, res, next) => {
+  applySecurityHeaders(res, { hsts: false });
+  next();
+});
+app.use(express.json({ limit: '16kb', strict: true }));
+
+// Le route API devono precedere express.static.
 app.all('/api/wines', require('./api/wines'));
-app.post('/api/auth/login', require('./api/auth/login'));
-app.get('/api/leaderboard', require('./api/leaderboard'));
+app.all('/api/leaderboard', require('./api/leaderboard'));
+app.all('/api/auth/request-otp', require('./api/auth/request-otp'));
+app.all('/api/auth/verify-otp', require('./api/auth/verify-otp'));
+app.all('/api/auth/exchange', require('./api/auth/exchange'));
+app.all('/api/auth/session', require('./api/auth/session'));
+app.all('/api/auth/refresh', require('./api/auth/refresh'));
+app.all('/api/auth/logout', require('./api/auth/logout'));
+if (process.env.NODE_ENV !== 'production') {
+  app.all('/api/auth/mock-login', require('./api/auth/mock-login'));
+}
+app.all('/api/tastings', require('./api/tastings'));
+app.all('/api/dna', require('./api/dna'));
+app.put('/api/users/:id', require('./api/users/[id]'));
 
-// ── Route protette (richiedono JWT valido) ───────────────────────────────────
-app.all('/api/tastings', auth, require('./api/tastings'));
-app.all('/api/dna', auth, require('./api/dna'));
-app.put('/api/users/:id', auth, (req, res) => {
-  // Shim: Express usa req.params, Vercel usa req.query
-  req.query = req.query || {};
-  req.query.id = req.params.id;
-  require('./api/users/[id]')(req, res);
+app.use((error, req, res, next) => {
+  if (error && (error.type === 'entity.too.large' || error.status === 413)) {
+    return res.status(413).json({
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Il payload supera il limite di 16384 byte',
+      fields: {}
+    });
+  }
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({
+      code: 'INVALID_JSON',
+      message: 'Il body JSON non è valido',
+      fields: {}
+    });
+  }
+  return next(error);
 });
 
-// Servi i file statici (index.html, style.css, app.js, ecc.) dalla cartella corrente
+// Il perimetro statico e il bind di rete appartengono a M0 e restano invariati.
 app.use(express.static(path.join(__dirname, '.')));
 
-const os = require('os');
 const networkInterfaces = os.networkInterfaces();
 let localIp = 'localhost';
 for (const interfaceName in networkInterfaces) {
   const iface = networkInterfaces[interfaceName];
-  for (let i = 0; i < iface.length; i++) {
+  for (let i = 0; i < iface.length; i += 1) {
     const alias = iface[i];
     if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
       localIp = alias.address;
@@ -42,7 +63,7 @@ for (const interfaceName in networkInterfaces) {
 
 const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🍷 Server locale di sviluppo avviato!`);
+  console.log('\n🍷 Server locale di sviluppo avviato!');
   console.log(`👉 Accesso dal PC: http://localhost:${PORT}`);
   console.log(`👉 Accesso da Mobile: http://${localIp}:${PORT}\n`);
 });

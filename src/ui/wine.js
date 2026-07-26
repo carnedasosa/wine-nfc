@@ -2,16 +2,23 @@
 // UI / WINE — scheda vino, slider, emozioni, salvataggio
 // ═══════════════════════════════════════════════════
 
-import { state, viniDB, saveState } from '../state.js';
+import { state, viniDB } from '../state.js';
 import { API } from '../api.js';
 import { showScreen } from '../router.js';
-import { showToast } from '../utils.js';
+import { safeHexColor, showToast } from '../utils.js';
+import { saveTastingToOutbox, registerSync } from '../outbox.js';
+
+const EMOTIONS = new Set(['Sorpresa', 'Nostalgia', 'Energia', 'Pace', 'Complessità', 'Radici']);
 
 /**
  * Apre la scheda dettaglio di un vino.
  * @param {object} vino
  */
 export function openWine(vino) {
+  if (!vino || !vino.id) {
+    showToast('Vino non valido', 'error');
+    return;
+  }
   state.vinoCorrente = vino;
   state.emozioneSelezionata = null;
 
@@ -28,8 +35,9 @@ export function openWine(vino) {
   document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
 
   // Colore hero
+  const color = safeHexColor(vino.colore);
   document.getElementById('wine-hero').style.background =
-    `linear-gradient(180deg, ${vino.colore}55 0%, var(--bg) 100%)`;
+    `linear-gradient(180deg, ${color}55 0%, var(--bg) 100%)`;
 
   document.getElementById('wine-emoji').textContent = vino.emoji;
   document.getElementById('wine-cantina-label').textContent = vino.cantina;
@@ -41,6 +49,7 @@ export function openWine(vino) {
 }
 
 export function updateSlider(tipo, el) {
+  if (!['acidita', 'corpo', 'persistenza'].includes(tipo)) return;
   const val = el.value;
   document.getElementById(tipo + '-val').textContent = val;
 
@@ -53,6 +62,7 @@ export function updateSlider(tipo, el) {
 }
 
 export function selectEmo(el, emo) {
+  if (!EMOTIONS.has(emo)) return;
   document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   state.emozioneSelezionata = emo;
@@ -68,22 +78,44 @@ export async function saveWine(renderHome) {
   }
 
   const vino = state.vinoCorrente;
+  if (!vino?.id) return showToast('Seleziona un vino valido', 'error');
   const btn = document.querySelector('.wine-cta .btn-save');
   if (btn) btn.disabled = true;
 
   const acidita = parseInt(document.getElementById('slider-acidita').value);
   const corpo = parseInt(document.getElementById('slider-corpo').value);
   const persistenza = parseInt(document.getElementById('slider-persistenza').value);
-  const emozione = state.emozioneSelezionata || 'Non specificata';
+  const emozione = state.emozioneSelezionata;
+
+  if (!emozione) {
+    if (btn) btn.disabled = false;
+    showToast('Seleziona un’emozione prima di salvare', 'error');
+    return;
+  }
+
+  const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+    ? crypto.randomUUID() 
+    : 'mock-uuid-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
 
   try {
-    await API.saveTasting({
+    const payload = {
+      eventId: state.eventId,
       wineId: vino.id,
       acidita,
       corpo,
       persistenza,
-      emozione
-    });
+      emozione,
+      idempotencyKey
+    };
+
+    if (!navigator.onLine) {
+      await saveTastingToOutbox(payload);
+      registerSync(); // try registering sync if possible
+      showToast(`${vino.nome} salvato offline. Verrà sincronizzato appena possibile.`, 'success');
+    } else {
+      await API.saveTasting(payload);
+      showToast(`${vino.nome} salvato nel passaporto ✓`);
+    }
 
     const assaggio = { vino, acidita, corpo, persistenza, emozione, timestamp: new Date() };
     const existing = state.assaggi.findIndex(a => a.vino.id === vino.id);
@@ -92,24 +124,14 @@ export async function saveWine(renderHome) {
     } else {
       state.assaggi.push(assaggio);
     }
-    saveState();
-
-    showToast(`${vino.nome} salvato nel passaporto ✓`);
+    
     setTimeout(() => {
       showScreen('home');
       renderHome();
     }, 800);
   } catch (e) {
     console.error('[saveWine] error:', e);
-    const msg = e.message || '';
-    if (msg.includes('non esistente')) {
-      // Sessione scaduta o DB resettato — puliamo e ricominciamo
-      localStorage.removeItem('vinoPassportState');
-      showToast('Sessione scaduta. Effettua di nuovo l\'accesso.', 'error');
-      setTimeout(() => { import('../router.js').then(r => r.showScreen('onboarding')); }, 1500);
-    } else {
-      showToast(msg || 'Errore nel salvataggio. Riprova.', 'error');
-    }
+    showToast(e.message || 'Errore nel salvataggio. Riprova.', 'error');
   } finally {
     if (btn) btn.disabled = false;
   }

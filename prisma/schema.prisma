@@ -9,12 +9,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  nome      String?
-  email     String?  @unique
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  authSubject String?  @unique
+  nome        String?
+  email       String?  @unique
+  createdAt   DateTime @default(now())
 
   tastings Tasting[]
+  events   EventParticipant[]
+  dnaProfiles DnaProfile[]
 }
 
 model Wine {
@@ -30,23 +33,87 @@ model Wine {
   colore     String?
 
   tastings Tasting[]
+  events   EventWine[]
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  nome      String
+  slug      String   @unique
+  inizio    DateTime
+  fine      DateTime
+  timezone  String
+  stato     String
+  createdAt DateTime @default(now())
+
+  wines        EventWine[]
+  participants EventParticipant[]
+  tastings     Tasting[]
+  dnaProfiles  DnaProfile[]
+}
+
+model EventWine {
+  eventId String
+  wineId  String
+  attivo  Boolean @default(true)
+  ordine  Int     @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  wine  Wine  @relation(fields: [wineId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, wineId])
+}
+
+model EventParticipant {
+  eventId             String
+  userId              String
+  nickname            String?
+  consensoLeaderboard Boolean @default(false)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
 }
 
 model Tasting {
   id String @id @default(uuid())
 
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   wineId String
-  wine   Wine   @relation(fields: [wineId], references: [id])
+  wine   Wine   @relation(fields: [wineId], references: [id], onDelete: Cascade)
 
-  acidita     Int
-  corpo       Int
-  persistenza Int
-  emozione    String
-  createdAt   DateTime @default(now())
+  acidita        Int
+  corpo          Int
+  persistenza    Int
+  emozione       String
+  idempotencyKey String?  @unique
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  @@index([userId])
-  @@index([wineId])
+  @@unique([eventId, userId, wineId])
+  @@index([eventId, userId, createdAt])
+  @@index([eventId, wineId])
+  @@index([eventId, createdAt])
+}
+
+model DnaProfile {
+  id String @id @default(uuid())
+  eventId String
+  userId String
+  versionHash String
+  testo String
+  fallback Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId, versionHash])
 }

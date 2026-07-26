@@ -1,89 +1,108 @@
 // ═══════════════════════════════════════════════════
-// UI / HOME — render del passaporto
+// UI / HOME — render del passaporto senza sink HTML
 // ═══════════════════════════════════════════════════
 
 import { state, viniDB } from '../state.js';
-import { calculateAverage, escapeHTML } from '../utils.js';
+import {
+  appendElement,
+  calculateAverage,
+  clearElement,
+  renderEmptyState,
+  safeHexColor
+} from '../utils.js';
+
+function makeKeyboardClickable(element, callback) {
+  element.tabIndex = 0;
+  element.setAttribute('role', 'button');
+  element.addEventListener('click', callback);
+  element.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      callback();
+    }
+  });
+}
+
+function renderStats(container, assaggi) {
+  const row = appendElement(container, 'div', 'stats-row');
+  const stats = [
+    [assaggi.length, 'Assaggi'],
+    [assaggi.length ? calculateAverage(assaggi, 'acidita') : '—', 'Acidità media'],
+    [assaggi.length ? calculateAverage(assaggi, 'corpo') : '—', 'Corpo medio']
+  ];
+
+  stats.forEach(([value, label]) => {
+    const card = appendElement(row, 'div', 'stat-card');
+    appendElement(card, 'div', 'stat-number', value);
+    appendElement(card, 'div', 'stat-label', label);
+  });
+}
+
+function renderDnaTeaser(container, openDna) {
+  const teaser = appendElement(container, 'div', 'dna-teaser');
+  makeKeyboardClickable(teaser, openDna);
+  appendElement(teaser, 'div', 'dna-teaser-label', 'Wine DNA · Aggiornato ora');
+  appendElement(teaser, 'div', 'dna-teaser-text', 'Scopri il tuo profilo sensoriale completo');
+  const action = appendElement(teaser, 'div', 'dna-teaser-action', 'Vedi analisi completa ');
+  appendElement(action, 'span', 'dna-teaser-arrow', '→');
+}
+
+function renderSectionHeader(container, assaggiCount) {
+  const header = appendElement(container, 'div', 'section-header');
+  appendElement(header, 'span', 'section-title', 'I tuoi assaggi');
+  appendElement(header, 'span', 'section-count', `${assaggiCount} / ${viniDB.length}`);
+}
+
+function renderWineCard(container, tasting, openWine) {
+  const vino = tasting.vino || {};
+  const card = appendElement(container, 'div', 'wine-card');
+  makeKeyboardClickable(card, () => openWine(vino));
+  card.setAttribute('aria-label', `Apri ${String(vino.nome || 'vino')}`);
+
+  const color = safeHexColor(vino.colore);
+  const colorBadge = appendElement(card, 'div', 'wine-card-color', vino.emoji || '🍷');
+  colorBadge.style.backgroundColor = `${color}22`;
+  colorBadge.style.border = `1px solid ${color}44`;
+
+  const info = appendElement(card, 'div', 'wine-card-info');
+  appendElement(info, 'div', 'wine-card-name', vino.nome || 'Vino');
+  appendElement(info, 'div', 'wine-card-cantina', `${vino.cantina || 'Cantina'} · ${vino.annata || '—'}`);
+
+  const ratings = appendElement(info, 'div', 'wine-card-ratings');
+  appendElement(ratings, 'span', 'rating-pill', `Ac. ${tasting.acidita}/5`);
+  appendElement(ratings, 'span', 'rating-pill', `Corpo ${tasting.corpo}/5`);
+  appendElement(ratings, 'span', 'rating-pill', tasting.emozione || '—');
+
+  const score = Number(tasting.acidita) + Number(tasting.corpo) + Number(tasting.persistenza);
+  appendElement(card, 'div', 'wine-card-score', Number.isFinite(score) ? score : '—');
+}
 
 /**
- * Renderizza la schermata home con stats e lista assaggi.
  * @param {(vino: object) => void} openWine
+ * @param {() => void} openDna
  */
-export function renderHome(openWine) {
-  const el = document.getElementById('home-content');
-  const assaggi = state.assaggi;
+export function renderHome(openWine, openDna) {
+  const container = document.getElementById('home-content');
+  const assaggi = Array.isArray(state.assaggi) ? state.assaggi : [];
+  clearElement(container);
 
-  const avgAcidita = assaggi.length ? calculateAverage(assaggi, 'acidita') : '—';
-  const avgCorpo = assaggi.length ? calculateAverage(assaggi, 'corpo') : '—';
-
-  let html = `
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-number">${assaggi.length}</div>
-        <div class="stat-label">Assaggi</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">${avgAcidita}</div>
-        <div class="stat-label">Acidità media</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">${avgCorpo}</div>
-        <div class="stat-label">Corpo medio</div>
-      </div>
-    </div>
-  `;
-
-  if (assaggi.length > 0) {
-    html += `
-      <div class="dna-teaser" onclick="showTab('dna')">
-        <div class="dna-teaser-label">Wine DNA · Aggiornato ora</div>
-        <div class="dna-teaser-text">Scopri il tuo profilo sensoriale completo</div>
-        <div class="dna-teaser-action">
-          Vedi l'analisi completa <span class="dna-teaser-arrow">→</span>
-        </div>
-      </div>
-    `;
-  }
-
-  html += `
-    <div class="section-header">
-      <span class="section-title">I tuoi assaggi</span>
-      <span class="section-count">${assaggi.length} / ${viniDB.length}</span>
-    </div>
-  `;
+  renderStats(container, assaggi);
+  if (assaggi.length > 0) renderDnaTeaser(container, openDna);
+  renderSectionHeader(container, assaggi.length);
 
   if (assaggi.length === 0) {
-    html += `
-      <div class="empty-state">
-        <div class="empty-state-icon">🍾</div>
-        <div class="empty-state-title">Nessun assaggio ancora</div>
-        <div class="empty-state-text">Avvicina il telefono a una bottiglia per iniziare. Usa il pulsante in basso per simulare il tap NFC.</div>
-      </div>
-    `;
-  } else {
-    assaggi.slice().reverse().forEach(a => {
-      // Usiamo JSON.stringify per l'oggetto completo, e escapeHTML per i dati renderizzati.
-      // Eseguiamo stringify sull'oggetto "pulito" se volessimo essere super sicuri,
-      // ma dato che openWine si aspetta l'oggetto, bastano gli escape in visualizzazione.
-      html += `
-        <div class="wine-card" onclick="openWine(${escapeHTML(JSON.stringify(a.vino))})">
-          <div class="wine-card-color" style="background: ${escapeHTML(a.vino.colore)}22; border: 1px solid ${escapeHTML(a.vino.colore)}44;">
-            ${escapeHTML(a.vino.emoji)}
-          </div>
-          <div class="wine-card-info">
-            <div class="wine-card-name">${escapeHTML(a.vino.nome)}</div>
-            <div class="wine-card-cantina">${escapeHTML(a.vino.cantina)} · ${escapeHTML(a.vino.annata.toString())}</div>
-            <div class="wine-card-ratings">
-              <span class="rating-pill">Ac. ${a.acidita}/5</span>
-              <span class="rating-pill">Corpo ${a.corpo}/5</span>
-              <span class="rating-pill">${escapeHTML(a.emozione)}</span>
-            </div>
-          </div>
-          <div class="wine-card-score">${a.acidita + a.corpo + a.persistenza}</div>
-        </div>
-      `;
-    });
+    renderEmptyState(
+      container,
+      '🍾',
+      'Nessun assaggio ancora',
+      'Avvicina il telefono a una bottiglia per iniziare. Usa il pulsante in basso per simulare il tap NFC.',
+      '',
+      false
+    );
+    return;
   }
 
-  el.innerHTML = html;
+  assaggi.slice().reverse().forEach(tasting => {
+    renderWineCard(container, tasting, openWine);
+  });
 }

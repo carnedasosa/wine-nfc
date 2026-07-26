@@ -1,68 +1,78 @@
 // ═══════════════════════════════════════════════════
-// UTILS — funzioni pure e helper DOM minimali
+// UTILS — funzioni pure e helper DOM
 // ═══════════════════════════════════════════════════
 
-export function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('error');
-  if (type === 'error') t.classList.add('error');
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+export function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.textContent = String(message);
+  toast.classList.toggle('error', type === 'error');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-/**
- * Sanifica una stringa per prevenire vulnerabilità XSS (Cross-Site Scripting)
- * quando viene inserita nel DOM tramite .innerHTML.
- */
-export function escapeHTML(str) {
-  if (typeof str !== 'string') return str;
-  return str.replace(/[&<>"']/g, function(match) {
-    const escapeMap = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    };
-    return escapeMap[match];
-  });
+export function clearElement(element) {
+  element.replaceChildren();
 }
 
-/**
- * Calcola la media di un campo numerico su un array di assaggi.
- * Restituisce 0 se l'array è vuoto.
- */
+export function appendElement(parent, tagName, className, text) {
+  const element = document.createElement(tagName);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = String(text);
+  parent.appendChild(element);
+  return element;
+}
+
+export function renderEmptyState(container, icon, title, message, padding = '', replace = true) {
+  if (replace) clearElement(container);
+  const empty = appendElement(container, 'div', 'empty-state');
+  if (padding) empty.style.padding = padding;
+  appendElement(empty, 'div', 'empty-state-icon', icon);
+  appendElement(empty, 'div', 'empty-state-title', title);
+  appendElement(empty, 'div', 'empty-state-text', message);
+  return empty;
+}
+
+export function safeHexColor(value, fallback = '#6f3647') {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+    ? value
+    : fallback;
+}
+
 export function calculateAverage(assaggi, field) {
-  if (!assaggi || assaggi.length === 0) return 0;
-  return Math.round(assaggi.reduce((s, a) => s + a[field], 0) / assaggi.length * 10) / 10;
+  if (!Array.isArray(assaggi) || assaggi.length === 0) return 0;
+  return Math.round(
+    assaggi.reduce((sum, tasting) => sum + Number(tasting[field] || 0), 0)
+      / assaggi.length
+      * 10
+  ) / 10;
 }
 
-/**
- * Restituisce le `count` emozioni più frequenti negli assaggi.
- */
 export function getTopEmotions(assaggi, count = 3) {
-  if (!assaggi || assaggi.length === 0) return [];
-  const emoCount = {};
-  assaggi.forEach(a => { emoCount[a.emozione] = (emoCount[a.emozione] || 0) + 1; });
-  return Object.entries(emoCount)
-    .sort((a, b) => b[1] - a[1])
+  if (!Array.isArray(assaggi) || assaggi.length === 0) return [];
+
+  const counts = new Map();
+  assaggi.forEach(tasting => {
+    const emotion = String(tasting.emozione || '');
+    if (emotion) counts.set(emotion, (counts.get(emotion) || 0) + 1);
+  });
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
     .slice(0, count)
-    .map(e => e[0]);
+    .map(([emotion]) => emotion);
 }
 
-/**
- * Scarica un Blob come file.
- */
 export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
   setTimeout(() => {
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    anchor.remove();
+    URL.revokeObjectURL(url);
   }, 100);
 }

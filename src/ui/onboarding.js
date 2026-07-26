@@ -1,60 +1,155 @@
 // ═══════════════════════════════════════════════════
-// UI / ONBOARDING
+// UI / ONBOARDING — accesso email OTP verificato
 // ═══════════════════════════════════════════════════
 
-import { state, pendingVinoId, setPendingVinoId, saveState, setToken } from '../state.js';
+import {
+  loadState,
+  pendingVinoId,
+  setAuthenticatedUser,
+  setPendingVinoId
+} from '../state.js';
 import { API } from '../api.js';
 import { showScreen } from '../router.js';
 import { showToast } from '../utils.js';
 
-/**
- * Gestisce il submit del form di onboarding.
- * @param {(vino: object) => void} openWine - callback per aprire un vino (evita import circolare)
- * @param {() => void} renderHome
- */
-export async function startPassport(openWine, renderHome) {
-  const nome = document.getElementById('input-nome').value.trim();
-  const email = document.getElementById('input-email').value.trim();
-  const btn = document.querySelector('.onboarding-inner .btn-primary');
+let requestedIdentity = null;
 
-  if (!nome || !email) {
-    showToast('Inserisci nome ed email per continuare', 'error');
+function getFields() {
+  return {
+    nome: document.getElementById('input-nome'),
+    email: document.getElementById('input-email'),
+    token: document.getElementById('input-otp'),
+    otpGroup: document.getElementById('onboarding-otp-group'),
+    hint: document.getElementById('onboarding-otp-hint'),
+    requestButton: document.getElementById('onboarding-request-btn'),
+    verifyButton: document.getElementById('onboarding-verify-btn'),
+    resetButton: document.getElementById('onboarding-reset-btn')
+  };
+}
+
+function validateIdentity(nome, email) {
+  if (!nome || nome.length > 60) {
+    return 'Il nome deve contenere da 1 a 60 caratteri';
+  }
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return 'Inserisci un indirizzo email valido';
+  }
+  return '';
+}
+
+function setOtpStep(active) {
+  const fields = getFields();
+  fields.nome.readOnly = active;
+  fields.email.readOnly = active;
+  fields.otpGroup.hidden = !active;
+  fields.requestButton.hidden = active;
+  fields.verifyButton.hidden = !active;
+  fields.resetButton.hidden = !active;
+
+  if (active) fields.token.focus();
+}
+
+export function resetOnboarding() {
+  requestedIdentity = null;
+  const fields = getFields();
+  fields.nome.value = '';
+  fields.email.value = '';
+  fields.token.value = '';
+  fields.hint.textContent = '';
+  setOtpStep(false);
+}
+
+export async function requestOtp() {
+  const fields = getFields();
+  if (fields.requestButton.disabled) return;
+  const nome = fields.nome.value.trim();
+  const email = fields.email.value.trim().toLowerCase();
+  const validationError = validateIdentity(nome, email);
+
+  if (validationError) {
+    showToast(validationError, 'error');
     return;
   }
 
-  if (btn) btn.disabled = true;
-
+  fields.requestButton.disabled = true;
   try {
-    const { token, user } = await API.login(nome, email);
-    setToken(token);
-    state.utente = { id: user.id, nome: user.nome, email: user.email };
+    await API.requestOtp(email);
+    requestedIdentity = { nome, email };
+    fields.email.value = email;
+    fields.hint.textContent = `Inserisci il codice ricevuto all'indirizzo ${email}.`;
+    setOtpStep(true);
+    showToast('Se l’indirizzo è valido, il codice è stato inviato.');
+  } catch (error) {
+    showToast(error.message || 'Invio del codice non riuscito. Riprova.', 'error');
+  } finally {
+    fields.requestButton.disabled = false;
+  }
+}
 
-    // Sync assaggi se utente già esistente
+export async function verifyOtp(openWine, renderHome) {
+  const fields = getFields();
+  if (fields.verifyButton.disabled) return;
+  const token = fields.token.value.trim();
+
+  if (!requestedIdentity) {
+    showToast('Richiedi prima un nuovo codice', 'error');
+    setOtpStep(false);
+    return;
+  }
+
+  if (!/^\d{6,8}$/.test(token)) {
+    showToast('Inserisci il codice numerico ricevuto via email', 'error');
+    return;
+  }
+
+  fields.verifyButton.disabled = true;
+  try {
+    const result = await API.verifyOtp(
+      requestedIdentity.nome,
+      requestedIdentity.email,
+      token
+    );
+    const user = result?.user;
+
+    if (!user?.id) throw new Error('Sessione non inizializzata');
+
+    setAuthenticatedUser(user);
     try {
-      const tastings = await API.getTastings();
-      state.assaggi = tastings;
-    } catch (e) {
-      console.error('Errore sync assaggi in onboarding:', e);
+      await loadState(API.getTastings);
+    } catch (error) {
+      if (error.status === 401) throw error;
+      console.error('Sincronizzazione assaggi non riuscita:', error);
+      showToast('Accesso riuscito; gli assaggi saranno sincronizzati più tardi.', 'error');
     }
 
-    saveState();
+    requestedIdentity = null;
+    fields.token.value = '';
 
     if (pendingVinoId) {
       const { viniDB } = await import('../state.js');
-      const vino = viniDB.find(v => v.id === pendingVinoId);
+      const vino = viniDB.find(item => item.id === pendingVinoId);
       setPendingVinoId(null);
       if (vino) {
         openWine(vino);
-        if (btn) btn.disabled = false;
         return;
       }
     }
 
     showScreen('home');
     renderHome();
-  } catch (e) {
-    showToast('Errore di connessione. Riprova.', 'error');
+  } catch (error) {
+    fields.token.select();
+    showToast(error.message || 'Codice non valido o scaduto', 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    fields.verifyButton.disabled = false;
   }
+}
+
+export function restartOtpFlow() {
+  requestedIdentity = null;
+  const fields = getFields();
+  fields.token.value = '';
+  fields.hint.textContent = '';
+  setOtpStep(false);
+  fields.email.focus();
 }

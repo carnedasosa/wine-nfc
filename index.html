@@ -33,6 +33,8 @@
       <span>Svegliando i profumi...</span>
       <span>Decifrando il Wine DNA...</span>
     </div>
+    <p class='empty-state-text' id='loading-status' aria-live='polite'></p>
+    <button class='btn-secondary' id='loading-retry-btn' type='button' hidden>Riprova</button>
   </div>
 </div>
 
@@ -61,7 +63,17 @@
       <input class="input-field" type="email" id="input-email" placeholder="Per ricevere il tuo Wine DNA" autocomplete="email">
     </div>
 
-    <button class="btn-primary" onclick="startPassport()">Inizia la degustazione →</button>
+    <div id="onboarding-otp-group" hidden>
+      <p class="empty-state-text" id="onboarding-otp-hint" aria-live="polite"></p>
+      <div class="input-group">
+        <label class="input-label" for="input-otp">Codice di verifica</label>
+        <input class="input-field" type="text" id="input-otp" placeholder="Codice ricevuto via email" autocomplete="one-time-code" inputmode="numeric" maxlength="8" pattern="[0-9]{6,8}">
+      </div>
+    </div>
+
+    <button class="btn-primary" id="onboarding-request-btn" type="button">Invia il codice →</button>
+    <button class="btn-primary" id="onboarding-verify-btn" type="button" hidden>Verifica e inizia →</button>
+    <button class="btn-secondary" id="onboarding-reset-btn" type="button" hidden>Usa un’altra email</button>
 
     <div class="fiera-badge">
       <div class="fiera-dot"></div>
@@ -81,7 +93,7 @@
         <div class="tap-hint-dot"></div>
         <span>Tocca una bottiglia</span>
       </div>
-      <button class="gear-btn" onclick="openSettings()" aria-label="Impostazioni profilo">
+      <button class="gear-btn js-open-settings" type="button" aria-label="Impostazioni profilo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -94,21 +106,21 @@
     <!-- Popolato da JS -->
   </div>
 
-  <button class="demo-nfc-btn" onclick="simulateNfcTap()">
+  <button class="demo-nfc-btn" id="simulate-nfc-btn" type="button">
     <span>⬡</span>
     Simula tap NFC
   </button>
 
   <nav class="bottom-nav">
-    <button class="nav-tab active" onclick="showTab('passport')">
+    <button class="nav-tab active" type="button" data-tab="passport">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
       Passaporto
     </button>
-    <button class="nav-tab" onclick="showTab('dna')" id="nav-dna">
+    <button class="nav-tab" type="button" data-tab="dna" id="nav-dna">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3c0 4 8 4 8 8s-8 4-8 8"/></svg>
       Wine DNA
     </button>
-    <button class="nav-tab" onclick="showTab('leaderboard')" id="nav-leaderboard">
+    <button class="nav-tab" type="button" data-tab="leaderboard" id="nav-leaderboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-4"/><path d="M4 20h16"/></svg>
       Classifica
     </button>
@@ -120,7 +132,7 @@
 ══════════════════════════════════ -->
 <div class="screen" id="screen-wine">
   <div class="wine-hero" id="wine-hero">
-    <div class="back-btn" onclick="goBack()">←</div>
+    <button class="back-btn" id="wine-back-btn" type="button" aria-label="Torna indietro">←</button>
     <span class="wine-emoji-big" id="wine-emoji">🍷</span>
     <div class="wine-detail-eyebrow" id="wine-cantina-label">Cantina</div>
     <h1 class="wine-detail-name" id="wine-name">Nome vino</h1>
@@ -138,7 +150,7 @@
           <span class="slider-label-name">Acidità</span>
           <span class="slider-label-value" id="acidita-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-acidita" style="--val: 50%;" oninput="updateSlider('acidita', this)">
+        <input type="range" min="1" max="5" value="3" id="slider-acidita" data-rating="acidita" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Morbida</span><span class="slider-end">Tagliente</span></div>
       </div>
 
@@ -147,7 +159,7 @@
           <span class="slider-label-name">Corpo</span>
           <span class="slider-label-value" id="corpo-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-corpo" style="--val: 50%;" oninput="updateSlider('corpo', this)">
+        <input type="range" min="1" max="5" value="3" id="slider-corpo" data-rating="corpo" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Etéreo</span><span class="slider-end">Denso</span></div>
       </div>
 
@@ -156,7 +168,7 @@
           <span class="slider-label-name">Persistenza</span>
           <span class="slider-label-value" id="persistenza-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-persistenza" style="--val: 50%;" oninput="updateSlider('persistenza', this)">
+        <input type="range" min="1" max="5" value="3" id="slider-persistenza" data-rating="persistenza" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Breve</span><span class="slider-end">Lunghissima</span></div>
       </div>
     </div>
@@ -164,21 +176,21 @@
     <div class="rating-section">
       <div class="rating-section-title">Che emozione ti dà?</div>
       <div class="emozione-grid" id="emozione-grid">
-        <div class="emo-chip" onclick="selectEmo(this, 'Sorpresa')">✦ Sorpresa</div>
-        <div class="emo-chip" onclick="selectEmo(this, 'Nostalgia')">◌ Nostalgia</div>
-        <div class="emo-chip" onclick="selectEmo(this, 'Energia')">↑ Energia</div>
-        <div class="emo-chip" onclick="selectEmo(this, 'Pace')">— Pace</div>
-        <div class="emo-chip" onclick="selectEmo(this, 'Complessità')">⊕ Complessità</div>
-        <div class="emo-chip" onclick="selectEmo(this, 'Radici')">◉ Radici</div>
+        <button class="emo-chip" type="button" data-emotion="Sorpresa">✦ Sorpresa</button>
+        <button class="emo-chip" type="button" data-emotion="Nostalgia">◌ Nostalgia</button>
+        <button class="emo-chip" type="button" data-emotion="Energia">↑ Energia</button>
+        <button class="emo-chip" type="button" data-emotion="Pace">— Pace</button>
+        <button class="emo-chip" type="button" data-emotion="Complessità">⊕ Complessità</button>
+        <button class="emo-chip" type="button" data-emotion="Radici">◉ Radici</button>
       </div>
     </div>
   </div>
 
   <div class="wine-cta">
-    <button class="btn-secondary" onclick="requestContact()">
+    <button class="btn-secondary" id="request-contact-btn" type="button">
       📬 Contattami
     </button>
-    <button class="btn-save" onclick="saveWine()">
+    <button class="btn-save" id="save-wine-btn" type="button">
       Salva nel passaporto →
     </button>
   </div>
@@ -189,8 +201,8 @@
 ══════════════════════════════════ -->
 <div class="screen" id="screen-dna" style="position:relative; overflow-y:auto;">
   <div class="dna-top-bar">
-    <div class="dna-back" onclick="showTab('passport')">←</div>
-    <button class="gear-btn" onclick="openSettings()" aria-label="Impostazioni profilo">
+    <button class="dna-back" type="button" data-tab="passport" aria-label="Torna al passaporto">←</button>
+    <button class="gear-btn js-open-settings" type="button" aria-label="Impostazioni profilo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -207,7 +219,7 @@
     <!-- Popolato da JS -->
   </div>
 
-  <button class="share-btn" onclick="shareDNA()">↗ Condividi il tuo Wine DNA</button>
+  <button class="share-btn" id="share-dna-btn" type="button">↗ Condividi il tuo Wine DNA</button>
 </div>
 
 <!-- ═══════════════════════════════
@@ -215,7 +227,7 @@
 ══════════════════════════════════ -->
 <div class="screen" id="screen-leaderboard">
   <div class="dna-top-bar">
-    <div class="dna-back" onclick="showTab('passport')">←</div>
+    <button class="dna-back" type="button" data-tab="passport" aria-label="Torna al passaporto">←</button>
   </div>
   <div class="dna-header">
     <div class="dna-eyebrow">Top Assaggiatori</div>
@@ -260,12 +272,12 @@
 <!-- ═══════════════════════════════
      SETTINGS PANEL
 ══════════════════════════════════ -->
-<div class="settings-overlay" id="settings-overlay" onclick="closeSettings()"></div>
+<div class="settings-overlay" id="settings-overlay"></div>
 <div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-label="Impostazioni profilo">
   <div class="settings-handle"></div>
   <div class="settings-header">
     <h2 class="settings-title">Il tuo profilo</h2>
-    <button class="settings-close" onclick="closeSettings()" aria-label="Chiudi impostazioni">✕</button>
+    <button class="settings-close" id="settings-close-btn" type="button" aria-label="Chiudi impostazioni">✕</button>
   </div>
   <div class="settings-body">
     <div class="input-group">
@@ -274,15 +286,16 @@
     </div>
     <div class="input-group">
       <label class="input-label" for="settings-email">Email</label>
-      <input class="input-field" type="email" id="settings-email" placeholder="La tua email" autocomplete="email">
+      <input class="input-field" type="email" id="settings-email" placeholder="La tua email" autocomplete="email" readonly aria-readonly="true">
     </div>
   </div>
   <div class="settings-footer">
-    <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Salva modifiche →</button>
+    <button class="btn-primary" id="settings-save-btn" type="button">Salva modifiche →</button>
+    <button class="btn-secondary" id="settings-logout-btn" type="button">Esci dal profilo</button>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous" defer></script>
 <script src="app.js" type="module"></script>
 </body>
 </html>

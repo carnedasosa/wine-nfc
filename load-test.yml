@@ -1,0 +1,13 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 30
+      arrivalCount: 1000
+      name: "Load 1000 users over 30 seconds"
+scenarios:
+  - name: "Visit home and wines"
+    flow:
+      - get:
+          url: "/"
+      - get:
+          url: "/api/wines"

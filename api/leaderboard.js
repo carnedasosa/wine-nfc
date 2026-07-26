@@ -1,60 +1,78 @@
 const prisma = require('../lib/prisma');
-const jwt = require('jsonwebtoken');
+const { optionalAuthentication } = require('../lib/auth');
+const { getTrustedClientIp } = require('../lib/http-security');
+const { enforceRateLimit } = require('../lib/rate-limit');
+const {
+  methodNotAllowed,
+  sendJsonError,
+  sendValidationError,
+  setNoStore
+} = require('../lib/api-utils');
+const { validatePagination } = require('../utils/validation');
+const { getRequestId, logError, logInfo } = require('../lib/logger');
 
-/**
- * Tenta di estrarre userId dal token, ma non blocca se manca.
- * L'endpoint resta pubblico — il token è un "nice to have".
- * @param {import('express').Request} req
- * @returns {string|null}
- */
-function tryExtractUserId(req) {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
-    return decoded.sub || null;
-  } catch {
-    return null;
-  }
-}
+module.exports = async function leaderboardHandler(req, res) {
+  const reqId = getRequestId(req);
+  res.setHeader('x-request-id', reqId);
+  res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
 
-module.exports = async function(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    logError(reqId, 'Metodo non consentito', { method: req.method });
+    return methodNotAllowed(res, 'GET');
+  }
+
+  const allowed = await enforceRateLimit(req, res, {
+    profile: 'LEADERBOARD_IP',
+    identifier: getTrustedClientIp(req)
+  });
+  if (!allowed) {
+    logError(reqId, 'Rate limit superato per leaderboard');
+    return undefined;
+  }
+
+  let pagination;
+  try {
+    pagination = validatePagination(req.query || {}, {
+      defaultLimit: 50,
+      maxLimit: 50,
+      maxPage: 1000
+    });
+  } catch (error) {
+    logError(reqId, 'Errore di validazione paginazione', error);
+    if (sendValidationError(res, error)) return undefined;
+    return sendJsonError(res, 400, 'INVALID_REQUEST', 'Richiesta non valida');
   }
 
   try {
-    const currentUserId = tryExtractUserId(req);
+    const [currentUser, usersWithCounts] = await Promise.all([
+      optionalAuthentication(req),
+      prisma.user.findMany({
+        where: { tastings: { some: {} } },
+        select: {
+          id: true,
+          nome: true,
+          _count: { select: { tastings: true } }
+        },
+        orderBy: [
+          { tastings: { _count: 'desc' } },
+          { id: 'asc' }
+        ],
+        skip: pagination.skip,
+        take: pagination.limit
+      })
+    ]);
 
-    const usersWithCounts = await prisma.user.findMany({
-      select: {
-        id: true,
-        nome: true,
-        _count: {
-          select: { tastings: true }
-        }
-      },
-      orderBy: {
-        tastings: {
-          _count: 'desc'
-        }
-      },
-      take: 50
-    });
+    const leaderboard = usersWithCounts.map((user, index) => ({
+      rank: pagination.skip + index + 1,
+      nome: user.nome || 'Utente',
+      tastingsCount: user._count.tastings,
+      isCurrentUser: Boolean(currentUser && user.id === currentUser.id)
+    }));
 
-    // Filtriamo chi ha 0 assaggi e NON esponiamo l'id nella response
-    const leaderboard = usersWithCounts
-      .filter(u => u._count.tastings > 0)
-      .map((u, index) => ({
-        rank: index + 1,
-        nome: u.nome || 'Utente',
-        tastingsCount: u._count.tastings,
-        isCurrentUser: currentUserId ? u.id === currentUserId : false
-      }));
-
+    logInfo(reqId, 'Classifica recuperata', { length: leaderboard.length });
     return res.status(200).json(leaderboard);
   } catch (error) {
-    console.error('Error in GET /api/leaderboard:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    logError(reqId, 'Errore interno durante il recupero della classifica', error);
+    return sendJsonError(res, 500, 'INTERNAL_ERROR', 'Errore interno del server');
   }
 };

@@ -1,73 +1,102 @@
 const prisma = require('../lib/prisma');
 const { withAuth } = require('../lib/auth');
+const { enforceRateLimit } = require('../lib/rate-limit');
+const {
+  methodNotAllowed,
+  sendJsonError,
+  sendValidationError,
+  setNoStore,
+  validateRequestBody
+} = require('../lib/api-utils');
+const { validateTastingPayload } = require('../utils/validation');
+const { getRequestId, logError, logInfo } = require('../lib/logger');
 
-function isValidRating(val) {
-  if (val === undefined || val === null) return false;
-  const num = Number(val);
-  return Number.isInteger(num) && num >= 1 && num <= 5;
-}
+module.exports = withAuth(async function tastingsHandler(req, res) {
+  const reqId = getRequestId(req);
+  res.setHeader('x-request-id', reqId);
+  setNoStore(res);
 
-/**
- * Handler per GET e POST /api/tastings.
- *
- * Il userId NON viene più accettato dal client (query string o body):
- * viene letto esclusivamente da req.userId, iniettato dal middleware JWT.
- * Questo elimina l'IDOR (Insecure Direct Object Reference) precedente.
- */
-module.exports = withAuth(async function(req, res) {
-  // ── GET /api/tastings ─────────────────────────────────────────────────
   if (req.method === 'GET') {
     try {
-      // req.userId è garantito dal middleware auth — nessuna validazione extra necessaria
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const eventId = req.query?.eventId || url.searchParams.get('eventId');
+      if (!eventId) {
+        logError(reqId, 'Parametro eventId mancante');
+        return sendJsonError(res, 400, 'MISSING_EVENT_ID', 'Parametro eventId mancante');
+      }
+
       const tastings = await prisma.tasting.findMany({
-        where: { userId: req.userId },
+        where: { userId: req.userId, eventId },
         include: { wine: true },
         orderBy: { createdAt: 'desc' }
       });
-
+      logInfo(reqId, 'Assaggi recuperati', { count: tastings.length });
       return res.status(200).json(tastings);
     } catch (error) {
-      console.error('Error in GET /api/tastings:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      logError(reqId, 'Errore interno durante il recupero degli assaggi', error);
+      return sendJsonError(res, 500, 'INTERNAL_ERROR', 'Errore interno del server');
     }
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    logError(reqId, 'Metodo non consentito', { method: req.method });
+    return methodNotAllowed(res, ['GET', 'POST']);
   }
 
-  // ── POST /api/tastings ────────────────────────────────────────────────
+  const allowed = await enforceRateLimit(req, res, {
+    profile: 'TASTING_USER',
+    identifier: req.authSubject
+  });
+  if (!allowed) {
+    logError(reqId, 'Rate limit superato per salvataggio assaggio');
+    return undefined;
+  }
+
+  let input;
   try {
-    const { wineId, acidita, corpo, persistenza, emozione } = req.body;
+    input = validateRequestBody(req, validateTastingPayload);
+  } catch (error) {
+    logError(reqId, 'Errore validazione payload assaggio', error);
+    if (sendValidationError(res, error)) return undefined;
+    return sendJsonError(res, 400, 'INVALID_REQUEST', 'Richiesta non valida');
+  }
 
-    if (!wineId || typeof wineId !== 'string' || !wineId.trim()) {
-      return res.status(400).json({ error: 'wineId valido è obbligatorio' });
-    }
-    if (!isValidRating(acidita) || !isValidRating(corpo) || !isValidRating(persistenza)) {
-      return res.status(400).json({ error: 'acidita, corpo e persistenza devono essere interi tra 1 e 5' });
-    }
-    if (!emozione || typeof emozione !== 'string' || !emozione.trim()) {
-      return res.status(400).json({ error: 'emozione valida è obbligatoria' });
-    }
-
-    const tasting = await prisma.tasting.create({
-      data: {
-        userId: req.userId,   // ← da token JWT, non dal body
-        wineId: wineId.trim(),
-        acidita: Number(acidita),
-        corpo: Number(corpo),
-        persistenza: Number(persistenza),
-        emozione: emozione.trim()
+  try {
+    const tasting = await prisma.tasting.upsert({
+      where: {
+        eventId_userId_wineId: {
+          eventId: input.eventId,
+          userId: req.userId,
+          wineId: input.wineId
+        }
+      },
+      create: {
+        eventId: input.eventId,
+        userId: req.userId,
+        wineId: input.wineId,
+        acidita: input.acidita,
+        corpo: input.corpo,
+        persistenza: input.persistenza,
+        emozione: input.emozione,
+        idempotencyKey: input.idempotencyKey
+      },
+      update: {
+        acidita: input.acidita,
+        corpo: input.corpo,
+        persistenza: input.persistenza,
+        emozione: input.emozione,
+        idempotencyKey: input.idempotencyKey,
+        version: { increment: 1 }
       }
     });
-
+    logInfo(reqId, 'Assaggio salvato', { tastingId: tasting.id });
     return res.status(201).json(tasting);
   } catch (error) {
-    console.error('Error in /api/tastings:', error);
-    // Errore Prisma: Foreign key constraint failed
-    if (error.code === 'P2003') {
-      return res.status(400).json({ error: 'Utente o vino non esistente' });
+    if (error && error.code === 'P2003') {
+      logError(reqId, 'Il vino indicato non esiste', error);
+      return sendJsonError(res, 400, 'WINE_NOT_FOUND', 'Il vino indicato non esiste');
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    logError(reqId, 'Errore interno durante il salvataggio dell’assaggio', error);
+    return sendJsonError(res, 500, 'INTERNAL_ERROR', 'Errore interno del server');
   }
 });

@@ -1,105 +1,123 @@
 // ═══════════════════════════════════════════════════
-// UI / LEADERBOARD — classifica live
+// UI / LEADERBOARD — classifica live senza sink HTML
 // ═══════════════════════════════════════════════════
 
 import { API } from '../api.js';
-import { escapeHTML } from '../utils.js';
+import { state } from '../state.js';
+import { appendElement, clearElement, renderEmptyState } from '../utils.js';
 
-// ── Cache semplice per evitare fetch ad ogni tab switch ──────────────────────
 let cachedData = null;
+let cachedViewerId = null;
 let lastFetchTime = 0;
-const CACHE_TTL = 30_000; // 30 secondi
-let fetchInFlight = false;
+const CACHE_TTL = 30_000;
+const MAX_ANIMATED = 15;
+let cacheGeneration = 0;
+let activeRequest = null;
 
-/**
- * Renderizza la classifica degli assaggiatori.
- * Usa una cache client-side con TTL di 30s e un guard
- * contro chiamate simultanee (tab switching rapido).
- */
+function renderLoading(container) {
+  clearElement(container);
+  const spinner = appendElement(container, 'div', 'loading-spinner');
+  spinner.style.margin = '40px auto';
+}
+
+function rankLabel(index) {
+  if (index === 0) return '🥇';
+  if (index === 1) return '🥈';
+  if (index === 2) return '🥉';
+  return `#${index + 1}`;
+}
+
+function renderList(container, leaderboard) {
+  clearElement(container);
+
+  if (!leaderboard.length) {
+    renderEmptyState(
+      container,
+      '🏆',
+      'Nessun assaggio registrato',
+      'Inizia a degustare per primo e conquista la vetta!'
+    );
+    return;
+  }
+
+  const list = appendElement(container, 'ul', 'leaderboard-list');
+  list.setAttribute('role', 'list');
+  list.setAttribute('aria-label', 'Classifica assaggiatori');
+
+  leaderboard.forEach((user, index) => {
+    const item = appendElement(list, 'li', 'leaderboard-item');
+    if (index < 3) item.classList.add('top-3');
+    if (user.isCurrentUser) item.classList.add('is-self');
+    item.style.animationDelay = `${Math.min(index, MAX_ANIMATED) * 0.05}s`;
+
+    const rank = appendElement(item, 'div', 'leaderboard-rank');
+    appendElement(
+      rank,
+      'span',
+      index < 3 ? 'rank-medal' : 'rank-number',
+      rankLabel(index)
+    );
+
+    const info = appendElement(item, 'div', 'leaderboard-info');
+    const name = appendElement(info, 'div', 'leaderboard-name', user.nome || 'Degustatore');
+    if (user.isCurrentUser) appendElement(name, 'span', 'you-badge', 'Tu');
+
+    const count = Number.isInteger(user.tastingsCount) ? user.tastingsCount : 0;
+    const countRow = appendElement(info, 'div', 'leaderboard-count');
+    appendElement(countRow, 'strong', '', count);
+    countRow.append(document.createTextNode(` ${count === 1 ? 'assaggio' : 'assaggi'}`));
+  });
+}
+
 export async function renderLeaderboard() {
   const container = document.getElementById('leaderboard-content');
   if (!container) return;
 
   const now = Date.now();
-
-  // Se abbiamo dati freschi in cache, usali senza fetch
-  if (cachedData && (now - lastFetchTime) < CACHE_TTL) {
+  const viewerId = state.utente.id || '';
+  if (cachedData && cachedViewerId === viewerId && now - lastFetchTime < CACHE_TTL) {
     renderList(container, cachedData);
     return;
   }
 
-  // Guard contro chiamate simultanee (tab switching nervoso)
-  if (fetchInFlight) return;
-  fetchInFlight = true;
-
-  // Mostra spinner solo se non abbiamo dati precedenti
-  if (!cachedData) {
-    container.innerHTML = '<div class="loading-spinner" style="margin: 40px auto;"></div>';
-  }
+  const generation = cacheGeneration;
+  if (activeRequest?.generation === generation) return;
+  const requestMarker = { generation, viewerId };
+  activeRequest = requestMarker;
+  if (!cachedData) renderLoading(container);
 
   try {
     const leaderboard = await API.getLeaderboard();
-    cachedData = leaderboard;
+    if (
+      generation !== cacheGeneration ||
+      state.utente.id !== viewerId ||
+      activeRequest !== requestMarker
+    ) return;
+    cachedData = Array.isArray(leaderboard) ? leaderboard : [];
+    cachedViewerId = viewerId;
     lastFetchTime = Date.now();
-    renderList(container, leaderboard);
+    renderList(container, cachedData);
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
-    // Se abbiamo dati vecchi, mostriamoli comunque
     if (cachedData) {
       renderList(container, cachedData);
     } else {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">⚠️</div>
-          <div class="empty-state-title">Errore di connessione</div>
-          <div class="empty-state-text">Impossibile caricare la classifica. Riprova tra poco.</div>
-        </div>
-      `;
+      renderEmptyState(
+        container,
+        '⚠️',
+        'Errore di connessione',
+        'Impossibile caricare la classifica. Riprova tra poco.'
+      );
     }
   } finally {
-    fetchInFlight = false;
+    if (activeRequest === requestMarker) activeRequest = null;
   }
 }
 
-// ── Render della lista ───────────────────────────────────────────────────────
-
-const MAX_ANIMATED = 15; // Cap animation delay per evitare righe invisibili su scroll
-
-function renderList(container, leaderboard) {
-  if (leaderboard.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🏆</div>
-        <div class="empty-state-title">Nessun assaggio registrato</div>
-        <div class="empty-state-text">Inizia a degustare per primo e conquista la vetta!</div>
-      </div>
-    `;
-    return;
-  }
-
-  let html = '<ul class="leaderboard-list" role="list" aria-label="Classifica assaggiatori">';
-  leaderboard.forEach((user, index) => {
-    let rankIcon = `<span class="rank-number">#${index + 1}</span>`;
-    if (index === 0) rankIcon = '<span class="rank-medal">🥇</span>';
-    else if (index === 1) rankIcon = '<span class="rank-medal">🥈</span>';
-    else if (index === 2) rankIcon = '<span class="rank-medal">🥉</span>';
-
-    const isTop3 = index < 3 ? 'top-3' : '';
-    const isSelf = user.isCurrentUser ? 'is-self' : '';
-    const delay = Math.min(index, MAX_ANIMATED) * 0.05;
-    const plural = user.tastingsCount === 1 ? 'assaggio' : 'assaggi';
-
-    html += `
-      <li class="leaderboard-item ${isTop3} ${isSelf}" style="animation-delay: ${delay}s">
-        <div class="leaderboard-rank">${rankIcon}</div>
-        <div class="leaderboard-info">
-          <div class="leaderboard-name">${escapeHTML(user.nome)}${user.isCurrentUser ? ' <span class="you-badge">Tu</span>' : ''}</div>
-          <div class="leaderboard-count"><strong>${user.tastingsCount}</strong> ${plural}</div>
-        </div>
-      </li>
-    `;
-  });
-  html += '</ul>';
-
-  container.innerHTML = html;
+export function clearLeaderboardCache() {
+  cacheGeneration += 1;
+  activeRequest = null;
+  cachedData = null;
+  cachedViewerId = null;
+  lastFetchTime = 0;
 }

@@ -18,11 +18,12 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "jsonwebtoken": "^9.0.3",
+    "dotenv": "16.6.1",
     "prisma": "^6.19.3"
   },
   "devDependencies": {
     "express": "^5.2.1",
+    "postcss": "^8.5.23",
     "vitest": "^4.1.9"
   }
 }

@@ -481,6 +481,8 @@ input[type="range"]:active::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   gap: 6px;
+  color: var(--text);
+  font-family: inherit;
 }
 .emo-chip.selected {
   background: var(--gold-soft);

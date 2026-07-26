@@ -1,0 +1,29 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 30
+      arrivalCount: 1000
+      name: "Load 1000 logged users saving tastings over 30 seconds"
+scenarios:
+  - name: "Login and save tasting"
+    flow:
+      - post:
+          url: "/api/auth/mock-login"
+          headers:
+            "Origin": "http://localhost:3000"
+          capture:
+            - json: "$.csrfToken"
+              as: "csrfToken"
+      - post:
+          url: "/api/tastings"
+          headers:
+            "Origin": "http://localhost:3000"
+            "x-csrf-token": "{{ csrfToken }}"
+          json:
+            eventId: "legacy-event-id"
+            wineId: "v1"
+            acidita: 3
+            corpo: 4
+            persistenza: 4
+            emozione: "Energia"
+            idempotencyKey: "{{ $uuid }}"
