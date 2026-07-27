@@ -97,9 +97,7 @@ function bindStaticEvents() {
   document.getElementById('onboarding-request-btn').addEventListener('click', requestOtp);
   document.getElementById('onboarding-verify-btn').addEventListener('click', verifyOnboardingOtp);
   document.getElementById('onboarding-reset-btn').addEventListener('click', restartOtpFlow);
-  document.getElementById('loading-retry-btn').addEventListener('click', () => {
-    window.location.reload();
-  });
+
 
   ['input-nome', 'input-email'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', event => {
@@ -215,7 +213,7 @@ async function initApp() {
   bindStaticEvents();
   showScreen('loading');
   document.getElementById('loading-status').textContent = '';
-  document.getElementById('loading-retry-btn').hidden = true;
+
 
   const { eventId } = getVinoFromURL();
   if (eventId) {
@@ -281,10 +279,8 @@ async function initApp() {
       clearUserState();
     } else {
       console.error('Verifica sessione non riuscita:', error);
-      document.getElementById('loading-status').textContent =
-        'Sessione temporaneamente non verificabile. I cookie non sono stati cancellati.';
-      document.getElementById('loading-retry-btn').hidden = false;
-      return;
+      showToast('Il server non risponde. L\'app potrebbe non funzionare correttamente.', 'error');
+      clearUserState();
     }
   }
 
