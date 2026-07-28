@@ -214,31 +214,39 @@ async function initApp() {
   showScreen('loading');
   document.getElementById('loading-status').textContent = '';
 
-
   const { eventId } = getVinoFromURL();
   if (eventId) {
     state.eventId = eventId;
   }
 
-  try {
-    const wines = await API.getWines();
-    setViniDB(wines);
-  } catch (error) {
-    console.error('Catalogo non disponibile:', error);
+  const magicLinkTokens = consumeMagicLinkHash();
+
+  const winesPromise = API.getWines();
+  let authPromise;
+
+  if (magicLinkTokens) {
+    authPromise = API.exchangeTokens(
+      magicLinkTokens.accessToken,
+      magicLinkTokens.refreshToken
+    );
+  } else {
+    authPromise = API.getSession();
+  }
+
+  const [winesResult, authResult] = await Promise.allSettled([winesPromise, authPromise]);
+
+  if (winesResult.status === 'fulfilled') {
+    setViniDB(winesResult.value);
+  } else {
+    console.error('Catalogo non disponibile:', winesResult.reason);
     showToast('Impossibile caricare il catalogo', 'error');
     showScreen('onboarding');
     return;
   }
 
-  // Gestione Magic Link: se Supabase ha reindirizzato qui con i token nell'hash,
-  // li scambiamo subito con una sessione sicura a cookie prima di qualsiasi altra cosa.
-  const magicLinkTokens = consumeMagicLinkHash();
   if (magicLinkTokens) {
-    try {
-      const result = await API.exchangeTokens(
-        magicLinkTokens.accessToken,
-        magicLinkTokens.refreshToken
-      );
+    if (authResult.status === 'fulfilled') {
+      const result = authResult.value;
       if (result?.user?.id) {
         setAuthenticatedUser(result.user);
         try {
@@ -250,7 +258,8 @@ async function initApp() {
         routeInitialScreen();
         return;
       }
-    } catch (error) {
+    } else {
+      const error = authResult.reason;
       console.error('Scambio Magic Link non riuscito:', error);
       showToast(
         error instanceof ApiError && error.status < 500
@@ -261,26 +270,27 @@ async function initApp() {
       showScreen('onboarding');
       return;
     }
-  }
-
-  try {
-    const session = await API.getSession();
-    if (session?.user?.id) {
-      setAuthenticatedUser(session.user);
-      try {
-        await loadState(API.getTastings);
-      } catch (error) {
-        console.error('Sincronizzazione assaggi non riuscita:', error);
-        if (state.utente.id) showToast('Assaggi temporaneamente non disponibili', 'error');
+  } else {
+    if (authResult.status === 'fulfilled') {
+      const session = authResult.value;
+      if (session?.user?.id) {
+        setAuthenticatedUser(session.user);
+        try {
+          await loadState(API.getTastings);
+        } catch (error) {
+          console.error('Sincronizzazione assaggi non riuscita:', error);
+          if (state.utente.id) showToast('Assaggi temporaneamente non disponibili', 'error');
+        }
       }
-    }
-  } catch (error) {
-    if (error.status === 401 || error.status === 403) {
-      clearUserState();
     } else {
-      console.error('Verifica sessione non riuscita:', error);
-      showToast('Il server non risponde. L\'app potrebbe non funzionare correttamente.', 'error');
-      clearUserState();
+      const error = authResult.reason;
+      if (error?.status === 401 || error?.status === 403) {
+        clearUserState();
+      } else {
+        console.error('Verifica sessione non riuscita:', error);
+        showToast('Il server non risponde. L\'app potrebbe non funzionare correttamente.', 'error');
+        clearUserState();
+      }
     }
   }
 

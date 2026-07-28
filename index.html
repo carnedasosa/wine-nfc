@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Vino Passport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=4">
 <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -27,7 +27,37 @@
 ══════════════════════════════════ -->
 <div class="screen active" id="screen-loading">
   <div class="onboarding-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
-    <div class="wine-breathing-loader"></div>
+    <!-- wine-loader inserito -->
+    <div class="wine-loader">
+      <svg viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caricamento in corso">
+        <defs>
+          <clipPath id="wlBowlClip">
+            <path d="M34,18 C18,18 14,40 17,58 C20,82 36,100 60,116 C84,100 100,82 103,58 C106,40 102,18 86,18 Z"/>
+          </clipPath>
+          <linearGradient id="wlWineGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--wine-top)"/>
+            <stop offset="100%" stop-color="var(--wine-bottom)"/>
+          </linearGradient>
+        </defs>
+
+        <!-- vino: clip statico sull'interno reale del calice + gruppo animato via transform -->
+        <g clip-path="url(#wlBowlClip)">
+          <g class="liquid-group">
+            <rect x="8" y="0" width="104" height="150" fill="url(#wlWineGradient)"/>
+            <ellipse class="liquid-surface" cx="60" cy="0" rx="46" ry="3.5"/>
+          </g>
+        </g>
+
+        <!-- getto che versa: shape affusolata (non un rettangolo) -->
+        <path class="pour-stream" d="M53,0 C52,6 52,14 55,25 L59,25 C62,14 62,6 61,0 Z"/>
+
+        <!-- calice: un unico contorno sottile, coppa + stelo + base -->
+        <path class="glass-outline" d="M34,18 C18,18 14,40 17,58 C20,82 36,100 60,116 C84,100 100,82 103,58 C106,40 102,18 86,18"/>
+        <ellipse class="glass-outline" cx="60" cy="18" rx="26" ry="4"/>
+        <line class="glass-outline" x1="60" y1="116" x2="60" y2="155"/>
+        <ellipse class="glass-outline" cx="60" cy="158" rx="16" ry="4.5"/>
+      </svg>
+    </div>
     <div class="loading-text-carousel">
       <span>Versando nel calice...</span>
       <span>Svegliando i profumi...</span>

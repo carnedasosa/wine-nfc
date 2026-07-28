@@ -225,28 +225,11 @@ function scheduleStoryImage(generation, userId, averages) {
 }
 
 function createInstaStat(container, label, value) {
-  const row = appendElement(container, 'div', 'insta-stat-row');
-  row.style.display = 'flex';
-  row.style.justifyContent = 'space-between';
-  row.style.marginBottom = '8px';
-
-  const name = appendElement(row, 'span', '', label);
-  name.style.fontWeight = '500';
-
-  const track = appendElement(row, 'div');
-  track.style.flex = '1';
-  track.style.margin = '0 15px';
-  track.style.height = '8px';
-  track.style.background = 'rgba(255,255,255,0.1)';
-  track.style.borderRadius = '4px';
-  track.style.overflow = 'hidden';
-  track.style.display = 'flex';
-  track.style.alignItems = 'center';
-
-  const fill = appendElement(track, 'div');
-  fill.style.height = '100%';
+  const row = appendElement(container, 'div', 'insta-radar-row');
+  appendElement(row, 'span', 'insta-radar-label', label);
+  const track = appendElement(row, 'div', 'insta-radar-track');
+  const fill = appendElement(track, 'div', 'insta-radar-fill');
   fill.style.width = `${rating(value) / 5 * 100}%`;
-  fill.style.background = 'rgba(255,255,255,0.9)';
 }
 
 function prepareInstaLayout(averages) {
@@ -269,14 +252,7 @@ function prepareInstaLayout(averages) {
   const tagsContainer = document.getElementById('insta-tags-container');
   clearElement(tagsContainer);
   document.querySelectorAll('.dna-tag').forEach(sourceTag => {
-    const tag = appendElement(tagsContainer, 'span', '', sourceTag.textContent);
-    tag.style.display = 'inline-block';
-    tag.style.padding = '8px 16px';
-    tag.style.margin = '4px';
-    tag.style.background = 'rgba(255,255,255,0.15)';
-    tag.style.border = '1px solid rgba(255,255,255,0.3)';
-    tag.style.borderRadius = '30px';
-    tag.style.fontSize = '24px';
+    appendElement(tagsContainer, 'span', 'insta-tag', sourceTag.textContent);
   });
 
   return true;

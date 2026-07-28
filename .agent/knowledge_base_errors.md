@@ -36,3 +36,8 @@
 - **Causa root:** Disallineamento tra lo stato iniziale (`{ nome: '', email: '' }`, senza `id` — app.js:10) e il check di validazione (`state.utente.id` — app.js:208). I dati pre-backend nel localStorage non includono `id`.
 - **Soluzione temporanea:** Cancellare il localStorage dal browser: `localStorage.removeItem('vinoPassportState'); location.reload();` e ripetere l'onboarding.
 - **Soluzione definitiva:** In `loadState()`, verificare che `state.utente` contenga il campo `id`. Se manca, forzare una ri-registrazione trasparente via API (`POST /api/users` con nome/email esistenti) per ottenere l'`id`, oppure invalidare la sessione e mostrare l'onboarding.
+
+## Errore 008: Missing event.waitUntil in Service Worker background fetch (Stale-While-Revalidate)
+- **Agente Responsabile:** The Engine
+- **Descrizione:** Durante l'implementazione del pattern Stale-While-Revalidate per la route `/api/wines`, è stata utilizzata l'espressione `return cachedResponse || fetchPromise;`. L'assenza di `event.waitUntil()` per la promise in background permetteva al browser di uccidere arbitrariamente il SW prima della revalidation e l'assenza di un `.catch()` causava un'eccezione *unhandled rejection* in condizioni di offline.
+- **Soluzione:** Quando si gestisce una background request non restituita al client (come la revalidation), racchiudere *sempre* la promise in `event.waitUntil(fetchPromise.catch(e => console.warn(e)))` prima di restituire il dato in cache.

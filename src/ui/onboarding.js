@@ -71,6 +71,8 @@ export async function requestOtp() {
     return;
   }
 
+  const originalText = fields.requestButton.textContent;
+  fields.requestButton.textContent = 'Invio in corso...';
   fields.requestButton.disabled = true;
   try {
     await API.requestOtp(email);
@@ -82,6 +84,7 @@ export async function requestOtp() {
   } catch (error) {
     showToast(error.message || 'Invio del codice non riuscito. Riprova.', 'error');
   } finally {
+    fields.requestButton.textContent = originalText;
     fields.requestButton.disabled = false;
   }
 }
@@ -102,6 +105,8 @@ export async function verifyOtp(openWine, renderHome) {
     return;
   }
 
+  const originalText = fields.verifyButton.textContent;
+  fields.verifyButton.textContent = 'Verifica in corso...';
   fields.verifyButton.disabled = true;
   try {
     const result = await API.verifyOtp(
@@ -141,6 +146,7 @@ export async function verifyOtp(openWine, renderHome) {
     fields.token.select();
     showToast(error.message || 'Codice non valido o scaduto', 'error');
   } finally {
+    fields.verifyButton.textContent = originalText;
     fields.verifyButton.disabled = false;
   }
 }
