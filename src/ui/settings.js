@@ -30,7 +30,6 @@ export async function openSettings() {
   nameInput.value = state.utente.nome || '';
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
-  nameInput.focus();
   try {
     const participation = await API.getParticipation(state.eventId);
     if (generation !== settingsGeneration) return;
