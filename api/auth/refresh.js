@@ -1,3 +1,5 @@
+const { maintenance } = require('../../lib/availability');
+const { getTrustedClientIp } = require('../../lib/http-security');
 const { refreshAuthSession, AuthProviderError } = require('../../lib/supabase-auth');
 const { findAccountBySubject } = require('../../lib/user-account');
 const {
@@ -18,6 +20,7 @@ const { validateEmptyPayload } = require('../../utils/validation');
 
 module.exports = async function refreshHandler(req, res) {
   setNoStore(res);
+  if (maintenance(res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
   if (!requireCsrf(req, res, { force: true })) return undefined;
 
@@ -40,7 +43,7 @@ module.exports = async function refreshHandler(req, res) {
   }
 
   try {
-    const session = await refreshAuthSession(refreshToken);
+    const session = await refreshAuthSession(refreshToken, getTrustedClientIp(req));
     // Persisti subito la coppia ruotata. Supabase applica la propria politica di
     // rotazione, inclusa la breve finestra di riuso configurata sul progetto.
     setSessionCookies(res, session);

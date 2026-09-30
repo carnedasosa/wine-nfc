@@ -1,3 +1,4 @@
+const { maintenance } = require('../../lib/availability');
 const { verifyEmailOtp, AuthProviderError } = require('../../lib/supabase-auth');
 const { AccountLinkError, linkVerifiedIdentity } = require('../../lib/user-account');
 const {
@@ -17,6 +18,7 @@ const { validateOtpVerifyPayload } = require('../../utils/validation');
 
 module.exports = async function verifyOtpHandler(req, res) {
   setNoStore(res);
+  if (maintenance(res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
   if (!requireSameOrigin(req, res, { force: true })) return undefined;
 
@@ -34,8 +36,9 @@ module.exports = async function verifyOtpHandler(req, res) {
   });
   if (!allowed) return undefined;
 
+  if (!await enforceRateLimit(req, res, { profile: 'OTP_VERIFY_EMAIL', identifier: input.email })) return;
   try {
-    const session = await verifyEmailOtp(input.email, input.token);
+    const session = await verifyEmailOtp(input.email, input.token, getTrustedClientIp(req));
     const user = await linkVerifiedIdentity(session.identity, input.nome);
     setSessionCookies(res, session);
     return res.status(200).json({ user });

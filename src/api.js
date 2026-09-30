@@ -20,6 +20,7 @@ export class ApiError extends Error {
 function mapTasting(tasting) {
   return {
     vino: tasting.wine,
+    version: tasting.version,
     acidita: tasting.acidita,
     corpo: tasting.corpo,
     persistenza: tasting.persistenza,
@@ -142,6 +143,7 @@ async function request(path, options = {}, config = {}) {
   let lastError;
 
   while (true) {
+    response = undefined;
     try {
       response = await rawFetch(path, options);
 
@@ -162,8 +164,12 @@ async function request(path, options = {}, config = {}) {
     }
 
     if (retries > 0) {
+      const retryAfter = response?.headers.get('Retry-After');
+      const retryMs = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) * 1000 : 0;
+      // Le attese lunghe vengono mostrate all'utente, senza tenere aperta la richiesta.
+      if (retryMs > 5000) break;
       retries--;
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise(r => setTimeout(r, Math.max(delay, retryMs)));
       delay *= 2;
     } else {
       if (!response) throw lastError || new Error('Request failed');
@@ -178,7 +184,8 @@ async function request(path, options = {}, config = {}) {
       announceExpiredSession();
     }
 
-    const message = data?.message || data?.error || 'Richiesta non riuscita';
+    const wait = response.headers.get('Retry-After');
+    const message = (data?.message || data?.error || 'Richiesta non riuscita') + (response.status === 429 && wait ? ' Attendi ' + wait + ' secondi.' : '');
     throw new ApiError(message, response.status, data || {});
   }
 
@@ -186,8 +193,8 @@ async function request(path, options = {}, config = {}) {
 }
 
 export const API = {
-  async getWines() {
-    return request('/api/wines', {}, {
+  async getWines(eventId) {
+    return request(`/api/wines${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''}`, {}, {
       retryAuth: false,
       announceAuthFailure: false
     });
@@ -264,7 +271,15 @@ export const API = {
     });
   },
 
-  async getLeaderboard() {
-    return request('/api/leaderboard');
+  async getParticipation(eventId) {
+    return request(`/api/participation?eventId=${encodeURIComponent(eventId)}`);
+  },
+
+  async saveParticipation(body) {
+    return request('/api/participation', { method: 'PUT', body });
+  },
+
+  async getLeaderboard(eventId) {
+    return request(`/api/leaderboard?eventId=${encodeURIComponent(eventId)}`);
   }
 };

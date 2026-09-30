@@ -30,5 +30,13 @@
         }
       ]
     }
-  ]
+  ],
+  "outputDirectory": "dist",
+  "framework": null,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30,
+      "includeFiles": "generated/prisma/**"
+    }
+  }
 }

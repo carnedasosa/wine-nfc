@@ -1,39 +1,19 @@
+const { maintenance } = require('../lib/availability');
 const prisma = require('../lib/prisma');
-const {
-  methodNotAllowed,
-  sendJsonError,
-  sendValidationError
-} = require('../lib/api-utils');
-const { assertAllowedKeys, assertPlainObject } = require('../utils/validation');
-const { getRequestId, logError, logInfo } = require('../lib/logger');
-
-module.exports = async function winesHandler(req, res) {
-  const reqId = getRequestId(req);
-  res.setHeader('x-request-id', reqId);
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
-
-  if (req.method !== 'GET') {
-    logError(reqId, 'Metodo non consentito', { method: req.method });
-    return methodNotAllowed(res, 'GET');
-  }
-
+const { getEvent, assertEventOpen, sendEventError } = require('../lib/event');
+const { methodNotAllowed, setNoStore, sendValidationError, sendJsonError } = require('../lib/api-utils');
+module.exports = async function wines(req, res) {
+  setNoStore(res);
+  if (maintenance(res)) return;
+  if (req.method !== 'GET') return methodNotAllowed(res, 'GET');
   try {
-    assertPlainObject(req.query || {}, 'query');
-    assertAllowedKeys(req.query || {}, []);
+    const event = await getEvent(prisma, req.query?.eventId);
+    const rows = await prisma.eventWine.findMany({ where: { eventId: event.id, attivo: true }, include: { wine: true }, orderBy: [{ ordine: 'asc' }, { wineId: 'asc' }] });
+    let open = true;
+    try { assertEventOpen(event); } catch { open = false; }
+    return res.status(200).json({ event: { id: event.id, nome: event.nome, inizio: event.inizio, fine: event.fine, timezone: event.timezone, open }, wines: rows.map(row => row.wine) });
   } catch (error) {
-    logError(reqId, 'Errore di validazione', error);
-    if (sendValidationError(res, error)) return undefined;
-    return sendJsonError(res, 400, 'INVALID_REQUEST', 'Richiesta non valida');
-  }
-
-  try {
-    const wines = await prisma.wine.findMany({
-      orderBy: [{ nome: 'asc' }, { id: 'asc' }]
-    });
-    logInfo(reqId, 'Catalogo recuperato con successo', { count: wines.length });
-    return res.status(200).json(wines);
-  } catch (error) {
-    logError(reqId, 'Errore interno durante il recupero del catalogo', error);
-    return sendJsonError(res, 500, 'INTERNAL_ERROR', 'Errore interno del server');
+    if (sendEventError(res, error) || sendValidationError(res, error)) return;
+    return sendJsonError(res, 503, 'CATALOG_UNAVAILABLE', 'Catalogo temporaneamente non disponibile');
   }
 };

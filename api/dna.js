@@ -1,4 +1,6 @@
 const crypto = require('node:crypto');
+const { generateDna } = require('../lib/dna-generation');
+const { getEvent, sendEventError } = require('../lib/event');
 const prisma = require('../lib/prisma');
 const { withAuth } = require('../lib/auth');
 const { enforceRateLimit } = require('../lib/rate-limit');
@@ -53,23 +55,7 @@ function buildTags(assaggi, avgAcidita, avgCorpo, topEmotions) {
 }
 
 function generaDNAFallback(acidita, corpo, topEmo) {
-  let fallback = 'Un profilo equilibrato che mostra una chiara evoluzione. ';
-  if (acidita >= 4) {
-    fallback += 'La spiccata propensione per l’acidità rivela un palato che cerca freschezza e tensione, tipiche dei grandi vini verticali. ';
-  } else if (acidita <= 2) {
-    fallback += 'La preferenza per acidità contenute suggerisce un amore per le morbidezze e i vini avvolgenti. ';
-  }
-
-  if (corpo >= 4) {
-    fallback += 'L’attrazione verso strutture imponenti denota una ricerca di calore, potenza e longevità nel calice. ';
-  } else if (corpo <= 2) {
-    fallback += 'La predilezione per corpi snelli indica una ricerca di bevibilità, eleganza e agilità. ';
-  }
-
-  if (topEmo && topEmo.length > 0) {
-    fallback += `Le sensazioni ricorrenti di ${topEmo.join(', ')} confermano un approccio emotivo e viscerale alla degustazione.`;
-  }
-  return fallback;
+  return 'Nei vini che hai descritto, l’acidità media è ' + acidita + '/5 e il corpo medio è ' + corpo + '/5. Le emozioni più ricorrenti sono ' + topEmo.join(', ') + '. Questo riepilogo descrive gli assaggi registrati, senza dedurre preferenze personali.';
 }
 
 module.exports = withAuth(async function dnaHandler(req, res) {
@@ -90,7 +76,9 @@ module.exports = withAuth(async function dnaHandler(req, res) {
     return sendJsonError(res, 400, 'INVALID_REQUEST', 'Richiesta non valida');
   }
 
-  const { eventId } = input;
+  let eventId;
+  try { eventId = (await getEvent(prisma, input.eventId)).id; }
+  catch (error) { if (sendEventError(res, error) || sendValidationError(res, error)) return; throw error; }
   const userId = req.userId;
 
   // 1. Fetches tastings
@@ -123,7 +111,7 @@ module.exports = withAuth(async function dnaHandler(req, res) {
   )];
   const tags = buildTags(tastings, averages.acidita, averages.corpo, topEmotions);
 
-  const viniPreferiti = tastings.slice(0, 3).map(tasting => {
+  const ultimiVini = tastings.slice(0, 3).map(tasting => {
     const wine = tasting.wine || {};
     return `${wine.nome || 'Vino'} (${wine.territorio || 'territorio non indicato'})`;
   });
@@ -134,89 +122,19 @@ module.exports = withAuth(async function dnaHandler(req, res) {
     topEmo: topEmotions,
     cantine,
     tags,
-    viniPreferiti
+    ultimiVini
   };
 
   // 3. Compute Hash
   const hashInput = tastings.map(t => `${t.id}-${t.updatedAt.getTime()}`).join('|');
   const versionHash = crypto.createHash('sha256').update(hashInput).digest('hex');
 
-  // 4. Check cache
-  const cached = await prisma.dnaProfile.findUnique({
-    where: {
-      eventId_userId_versionHash: { eventId, userId, versionHash }
-    }
-  });
-
-  if (cached) {
-    return res.status(200).json({
-      dnaText: cached.testo,
-      fallback: cached.fallback,
-      stats
-    });
+  try {
+    const result = await generateDna(prisma, { eventId, userId, versionHash, stats,
+      fallbackText: generaDNAFallback(averages.acidita, averages.corpo, topEmotions) });
+    return res.status(200).json({ ...result, stats });
+  } catch (error) {
+    console.warn('DNA cache non disponibile', error.code || error.name);
+    return res.status(200).json({ dnaText: generaDNAFallback(averages.acidita, averages.corpo, topEmotions), fallback: true, stats });
   }
-
-  // 5. Build prompt and call Anthropic
-  const AI_ENABLED = process.env.AI_ENABLED !== 'false';
-  let dnaText = generaDNAFallback(averages.acidita, averages.corpo, topEmotions);
-  let isFallback = true;
-
-  if (AI_ENABLED && process.env.GEMINI_API_KEY) {
-    const utenteNome = req.authUser.nome;
-    const nomeInserito = utenteNome ? ` di ${utenteNome}` : '';
-    const prompt = `Sei un sommelier poetico. Analizza questo profilo di degustazione e scrivi un paragrafo breve (3-4 frasi) in italiano, stile letterario, che descrive la personalità enologica di questa persona. Sii specifico, evocativo, usa metafore legate al territorio italiano.
-
-Dati: ${assaggiCount} vini assaggiati${nomeInserito}, acidità media ${averages.acidita}/5, corpo medio ${averages.corpo}/5, persistenza media ${averages.persistenza}/5.
-Emozioni prevalenti: ${topEmotions.join(', ')}.
-Vini preferiti: ${viniPreferiti.join(', ')}.
-
-Rispondi SOLO con il paragrafo, nessun titolo o introduzione.`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    try {
-      const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 300 }
-        }),
-        signal: controller.signal
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (aiText) {
-          dnaText = aiText;
-          isFallback = false;
-        }
-      } else {
-        console.warn(`Gemini fallito con status ${response.status}`);
-      }
-    } catch (error) {
-      console.warn('Gemini timeout o errore di rete:', error.name);
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  // 6. Save to cache (fire and forget)
-  prisma.dnaProfile.create({
-    data: {
-      eventId,
-      userId,
-      versionHash,
-      testo: dnaText,
-      fallback: isFallback
-    }
-  }).catch(e => console.warn('Impossibile salvare in cache DnaProfile:', e));
-
-  return res.status(200).json({ dnaText, fallback: isFallback, stats });
 });

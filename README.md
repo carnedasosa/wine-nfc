@@ -23,7 +23,8 @@ Copia `.env.example` in `.env` e configura almeno:
 - `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`;
 - `APP_ORIGIN`, origin esatto dell’applicazione, senza slash finale;
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` e preferibilmente `RATE_LIMIT_KEY_SECRET` in produzione;
-- `ANTHROPIC_API_KEY`, se il Wine DNA AI deve essere attivo.
+- `GEMINI_API_KEY`, se il Wine DNA AI deve essere attivo.
+- `GEMINI_MODEL`, opzionale, di default `gemini-1.5-flash`.
 
 `SUPABASE_ANON_KEY` resta supportata solo per compatibilità con progetti Supabase legacy. Non usare mai una secret key o una service-role key nel browser o al posto della publishable key.
 
@@ -99,3 +100,10 @@ Il server locale è disponibile su `http://localhost:3000`. Le API accettano bod
 Questo repository include gli interventi M1: identità verificata, lifecycle sessione, CSRF/origin, validazione centralizzata, rimozione dei sink XSS, CSP/security headers e rate limiting condiviso. Non equivale ancora alla certificazione di capacità per 1.000 partecipanti: integrità dati/eventi, Wine DNA server-derived, cache/offline, osservabilità e load test appartengono alle milestone successive descritte in `IMPLEMENTATION_PLAN.md`.
 
 Per i test NFC consulta `NFC_TESTING_GUIDE.md`.
+
+
+## Release Sovranaturale del 25 ottobre 2026
+
+Stato aggiornato: [correzioni e blocchi residui](docs/STATO_RELEASE_SOVRANATURALE.md). Procedura operativa: [runbook di rilascio](docs/RUNBOOK_RELEASE_FIERA.md).
+
+`npm run dev` costruisce e serve solo `dist`. `npm run release:check` verifica i prerequisiti di produzione. `npm run test:db` usa uno schema temporaneo PostgreSQL isolato; `npm run load:staging` richiede un ambiente e sessioni di collaudo espliciti.

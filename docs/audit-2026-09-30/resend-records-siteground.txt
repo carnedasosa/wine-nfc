@@ -1,0 +1,43 @@
+SOVRANATURALE - RECORD DNS PER EMAIL OTP
+Rilevazione: 30 settembre 2026
+
+Stato: configurazione creata in Resend, verifica DNS ancora da completare.
+Dominio mittente: accessi.sovranaturale.it
+Regione: Ireland (eu-west-1)
+Zona DNS: sovranaturale.it
+Nameserver rilevati: ns1.siteground.net, ns2.siteground.net
+
+Record 1
+Tipo: TXT
+Nome relativo alla zona: resend._domainkey.accessi
+Nome completo: resend._domainkey.accessi.sovranaturale.it
+Valore: p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC60gnOjaiqgxOlK3/ugfcg9nIn+ceopkvizdd5VvbfqxLsCMW3aanTXb2BJsPcQxufyO/IydK1TmZwP9Fk3/4LMBHVb3Oe7DJkU20Ah9HyIiBRTPz4TMl3BCxzoD2xSw35jypX8Jf15CYqhffHPl4T3tvZXhTT01+34QjOnsPR5QIDAQAB
+TTL: Auto o valore predefinito del pannello
+
+Record 2
+Tipo: CNAME
+Nome relativo alla zona: rsend.accessi
+Nome completo: rsend.accessi.sovranaturale.it
+Valore: rsend-euw1.forge.rmta.net
+TTL: Auto o valore predefinito del pannello
+
+Record 3
+Tipo: CNAME
+Nome relativo alla zona: send.accessi
+Nome completo: send.accessi.sovranaturale.it
+Valore: send.forge.rmta.net
+TTL: Auto o valore predefinito del pannello
+
+I tre valori sono quelli mostrati dal pannello Resend per questo dominio.
+La chiave DKIM riportata e' pubblica; non e' una password o una API key.
+Non sostituire record esistenti: se uno dei nomi esiste gia', verificarne prima l'uso.
+Non modificare i record A/AAAA del sito o i record MX del dominio principale.
+La ricezione email in Resend e' disabilitata.
+
+Dopo l'inserimento: verificare il dominio in Resend. Soltanto dopo l'esito positivo,
+configurare il mittente OTP in Supabase (proposta: accesso@accessi.sovranaturale.it)
+e provare la consegna a caselle di collaudo autorizzate.
+Questa configurazione abilita l'invio: non crea una casella di assistenza.
+
+Pagina Resend:
+https://resend.com/domains/add/8a005adc-01fa-47a1-b764-60ca5fddcf67

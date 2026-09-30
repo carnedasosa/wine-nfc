@@ -137,6 +137,13 @@ function bindStaticEvents() {
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') closeSettings();
+    const panel = document.getElementById('settings-panel');
+    if (event.key === 'Tab' && !panel.inert) {
+      const focusable = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href]')];
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
   });
   window.addEventListener('vino:session-expired', () => {
     returnToOnboarding('Sessione scaduta. Accedi di nuovo.');
@@ -211,6 +218,7 @@ function consumeMagicLinkHash() {
 
 async function initApp() {
   bindStaticEvents();
+  document.getElementById('loading-retry-btn').addEventListener('click', () => window.location.reload());
   showScreen('loading');
   document.getElementById('loading-status').textContent = '';
 
@@ -221,7 +229,7 @@ async function initApp() {
 
   const magicLinkTokens = consumeMagicLinkHash();
 
-  const winesPromise = API.getWines();
+  const winesPromise = API.getWines(state.eventId);
   let authPromise;
 
   if (magicLinkTokens) {
@@ -236,11 +244,18 @@ async function initApp() {
   const [winesResult, authResult] = await Promise.allSettled([winesPromise, authPromise]);
 
   if (winesResult.status === 'fulfilled') {
-    setViniDB(winesResult.value);
+    const catalog = winesResult.value;
+    setViniDB(catalog.wines);
+    state.event = catalog.event;
+    state.eventId = catalog.event.id;
+    const url = new URL(window.location.href);
+    url.searchParams.set('eventId', state.eventId);
+    window.history.replaceState(null, '', url.pathname + url.search);
+    document.querySelector('.fiera-name').textContent = catalog.event.nome + ' · Bari · ' + new Date(catalog.event.inizio).toLocaleDateString('it-IT', { timeZone: catalog.event.timezone });
   } else {
     console.error('Catalogo non disponibile:', winesResult.reason);
-    showToast('Impossibile caricare il catalogo', 'error');
-    showScreen('onboarding');
+    document.getElementById('loading-status').textContent = winesResult.reason?.message || 'Catalogo non disponibile';
+    document.getElementById('loading-retry-btn').hidden = false;
     return;
   }
 
@@ -304,17 +319,13 @@ async function initApp() {
 initApp();
 
 if ('serviceWorker' in navigator) {
-  let serviceWorkerReloading = false;
+
   navigator.serviceWorker.addEventListener('message', event => {
     if (event.data && event.data.type === 'FLUSH_OUTBOX') {
       import('./src/outbox.js').then(m => m.flushOutbox());
     }
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (serviceWorkerReloading) return;
-    serviceWorkerReloading = true;
-    window.location.reload();
-  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .catch(error => console.error('Errore Service Worker:', error));

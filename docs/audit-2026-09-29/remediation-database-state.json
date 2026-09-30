@@ -1,0 +1,44 @@
+{
+  "checkedAt": "2026-09-29T17:45:02.228Z",
+  "users": 4566,
+  "wines": 6,
+  "tastings": 782,
+  "dnaProfiles": 0,
+  "tastingRequests": 0,
+  "migrations": [
+    {
+      "migration_name": "0_init",
+      "completed": true
+    },
+    {
+      "migration_name": "m2_models",
+      "completed": true
+    },
+    {
+      "migration_name": "m3_dna_profile",
+      "completed": true
+    },
+    {
+      "migration_name": "m4_tasting_requests",
+      "completed": true
+    },
+    {
+      "migration_name": "m5_dna_generation_lease",
+      "completed": true
+    }
+  ],
+  "tableAccess": [
+    {
+      "relname": "DnaProfile",
+      "relrowsecurity": false,
+      "anon_read": false,
+      "authenticated_read": false
+    },
+    {
+      "relname": "TastingRequest",
+      "relrowsecurity": false,
+      "anon_read": false,
+      "authenticated_read": false
+    }
+  ]
+}

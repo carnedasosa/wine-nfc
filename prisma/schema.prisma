@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -18,6 +19,7 @@ model User {
   tastings Tasting[]
   events   EventParticipant[]
   dnaProfiles DnaProfile[]
+  tastingRequests TastingRequest[]
 }
 
 model Wine {
@@ -50,6 +52,7 @@ model Event {
   participants EventParticipant[]
   tastings     Tasting[]
   dnaProfiles  DnaProfile[]
+  tastingRequests TastingRequest[]
 }
 
 model EventWine {
@@ -110,10 +113,24 @@ model DnaProfile {
   versionHash String
   testo String
   fallback Boolean @default(false)
+  generationToken String?
+  leaseUntil DateTime?
   createdAt DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId, versionHash])
+}
+
+model TastingRequest {
+  idempotencyKey String @id
+  userId String
+  eventId String
+  requestHash String
+  response Json
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@index([eventId, userId])
 }

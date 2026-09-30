@@ -140,7 +140,7 @@ describe('Supabase Auth server-side', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
       email: 'utente@example.com',
       token: '123456',
-      type: 'magiclink'
+      type: 'email'
     });
   });
 

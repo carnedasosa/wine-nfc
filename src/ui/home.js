@@ -95,7 +95,7 @@ export function renderHome(openWine, openDna) {
       container,
       '🍾',
       'Nessun assaggio ancora',
-      'Avvicina il telefono a una bottiglia per iniziare. Usa il pulsante in basso per simulare il tap NFC.',
+      'Avvicina il telefono a una bottiglia per iniziare, oppure inquadra il QR della bottiglia.',
       '',
       false
     );

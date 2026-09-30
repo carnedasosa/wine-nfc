@@ -56,6 +56,7 @@ describe('contratti di validazione M1', () => {
       corpo: 3,
       persistenza: '5',
       emozione: EMOTIONS[0],
+      baseVersion: 0,
       idempotencyKey: '22222222-2222-4222-8222-222222222222'
     });
     expect(result).toEqual({
@@ -65,6 +66,7 @@ describe('contratti di validazione M1', () => {
       corpo: 3,
       persistenza: 5,
       emozione: 'Sorpresa',
+      baseVersion: 0,
       idempotencyKey: '22222222-2222-4222-8222-222222222222'
     });
   });
@@ -77,6 +79,7 @@ describe('contratti di validazione M1', () => {
       corpo: 3,
       persistenza: 3,
       emozione: 'Pace',
+      baseVersion: 0,
       idempotencyKey: '22222222-2222-4222-8222-222222222222'
     };
     expect(() => validateTastingPayload({

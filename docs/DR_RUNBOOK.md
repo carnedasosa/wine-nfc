@@ -1,5 +1,7 @@
 # Disaster Recovery Runbook (Vino Passport)
 
+> Per la release Sovranaturale 2026 usare il [runbook aggiornato](RUNBOOK_RELEASE_FIERA.md): manutenzione implementata, provider Gemini e verifiche di ripristino.
+
 ## 1. Database Down
 **Sintomi:** Errori 500 continui sulle API (es. `/api/wines`, `/api/leaderboard`, `/api/tastings`). Log con `PrismaClientInitializationError` o timeout di connessione.
 **Azioni:**

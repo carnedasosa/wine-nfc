@@ -1,3 +1,4 @@
+const { maintenance } = require('../../lib/availability');
 const { requestEmailOtp, AuthProviderError } = require('../../lib/supabase-auth');
 const { requireSameOrigin, getTrustedClientIp } = require('../../lib/http-security');
 const { enforceRateLimit } = require('../../lib/rate-limit');
@@ -19,6 +20,7 @@ function accepted(res) {
 
 module.exports = async function requestOtpHandler(req, res) {
   setNoStore(res);
+  if (maintenance(res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
   if (!requireSameOrigin(req, res, { force: true })) return undefined;
 
@@ -43,7 +45,7 @@ module.exports = async function requestOtpHandler(req, res) {
   if (!emailAllowed) return undefined;
 
   try {
-    await requestEmailOtp(input.email);
+    await requestEmailOtp(input.email, getTrustedClientIp(req));
     return accepted(res);
   } catch (error) {
     if (error instanceof AuthProviderError) {

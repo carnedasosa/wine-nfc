@@ -1,0 +1,51 @@
+{
+  "eventRouting": {
+    "before": {
+      "vino": "v1",
+      "eventId": "11111111-1111-4111-8111-111111111111"
+    },
+    "urlAfterOpeningWine": "https://audit.example/",
+    "parametersOnReload": {
+      "vino": null,
+      "eventId": "legacy-event-id"
+    }
+  },
+  "outboxOwnership": {
+    "enqueuedBy": "utente-A",
+    "sent": [
+      {
+        "sessionUser": "utente-B",
+        "payload": {
+          "eventId": "legacy-event-id",
+          "wineId": "v1",
+          "acidita": 3,
+          "corpo": 3,
+          "persistenza": 3,
+          "emozione": "Pace",
+          "idempotencyKey": "22222222-2222-4222-8222-222222222222"
+        }
+      }
+    ],
+    "pendingAfterSync": 0
+  },
+  "idempotency": {
+    "first": {
+      "version": 1,
+      "acidita": 3
+    },
+    "duplicate": {
+      "version": 2,
+      "acidita": 3
+    },
+    "newer": {
+      "version": 3,
+      "acidita": 5
+    },
+    "staleRetry": {
+      "version": 4,
+      "acidita": 3
+    },
+    "upsertCalls": 4,
+    "note": "Nessuna query a Event, EventWine o EventParticipant richiesta dal vero handler."
+  }
+}

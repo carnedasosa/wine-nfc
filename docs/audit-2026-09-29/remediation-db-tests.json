@@ -1,0 +1,14 @@
+{
+  "executedAt": "2026-09-29T17:50:44.527Z",
+  "passed": true,
+  "checks": [
+    "Tutte le migrazioni applicate in schema isolato",
+    "Due invii simultanei della stessa richiesta producono un solo assaggio",
+    "Retry precedente non sovrascrive la modifica successiva",
+    "Versioni obsolete, altro proprietario, vino escluso ed evento chiuso vengono rifiutati",
+    "Due generazioni simultanee richiedono una sola chiamata AI; cache persistente verificata",
+    "Budget AI esaurito: riepilogo descrittivo senza chiamare il modello",
+    "API reali: classifica vuota senza consenso, nickname dopo opt-in, ritiro immediato e no-store"
+  ],
+  "cleanup": true
+}

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Vino Passport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=4">
 <link rel="manifest" href="manifest.json">
 </head>
@@ -63,7 +63,7 @@
       <span>Svegliando i profumi...</span>
       <span>Decifrando il Wine DNA...</span>
     </div>
-    <p class='empty-state-text' id='loading-status' aria-live='polite'></p>
+    <p class='empty-state-text' id='loading-status' aria-live='polite'></p><button id="loading-retry-btn" class="btn-secondary" type="button" hidden>Riprova</button>
   </div>
 </div>
 
@@ -89,7 +89,7 @@
     </div>
     <div class="input-group">
       <label class="input-label" for="input-email">Email</label>
-      <input class="input-field" type="email" id="input-email" placeholder="Per ricevere il tuo Wine DNA" autocomplete="email">
+      <input class="input-field" type="email" id="input-email" placeholder="Per il codice di accesso" autocomplete="email">
     </div>
 
     <div id="onboarding-otp-group" hidden>
@@ -100,13 +100,14 @@
       </div>
     </div>
 
+    <p class="empty-state-text">L’email serve per accedere. <a href="/privacy.html" target="_blank" rel="noopener">Leggi l’informativa privacy</a>.</p>
     <button class="btn-primary" id="onboarding-request-btn" type="button">Invia il codice →</button>
     <button class="btn-primary" id="onboarding-verify-btn" type="button" hidden>Verifica e inizia →</button>
     <button class="btn-secondary" id="onboarding-reset-btn" type="button" hidden>Usa un’altra email</button>
 
     <div class="fiera-badge">
       <div class="fiera-dot"></div>
-      <span class="fiera-name">Fiera attiva · Bari, 14 giugno 2025</span>
+      <span class="fiera-name">Sovranaturale · Bari, 25 ottobre 2026</span>
     </div>
   </div>
 </div>
@@ -135,7 +136,7 @@
     <!-- Popolato da JS -->
   </div>
 
-  <button class="demo-nfc-btn" id="simulate-nfc-btn" type="button">
+  <button class="demo-nfc-btn" id="simulate-nfc-btn" type="button" hidden>
     <span>⬡</span>
     Simula tap NFC
   </button>
@@ -179,7 +180,7 @@
           <span class="slider-label-name">Acidità</span>
           <span class="slider-label-value" id="acidita-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-acidita" data-rating="acidita" style="--val: 50%;">
+        <input type="range" min="1" max="5" value="3" id="slider-acidita" aria-label="Acidità" data-rating="acidita" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Morbida</span><span class="slider-end">Tagliente</span></div>
       </div>
 
@@ -188,7 +189,7 @@
           <span class="slider-label-name">Corpo</span>
           <span class="slider-label-value" id="corpo-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-corpo" data-rating="corpo" style="--val: 50%;">
+        <input type="range" min="1" max="5" value="3" id="slider-corpo" aria-label="Corpo" data-rating="corpo" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Etéreo</span><span class="slider-end">Denso</span></div>
       </div>
 
@@ -197,7 +198,7 @@
           <span class="slider-label-name">Persistenza</span>
           <span class="slider-label-value" id="persistenza-val">3</span>
         </div>
-        <input type="range" min="1" max="5" value="3" id="slider-persistenza" data-rating="persistenza" style="--val: 50%;">
+        <input type="range" min="1" max="5" value="3" id="slider-persistenza" aria-label="Persistenza" data-rating="persistenza" style="--val: 50%;">
         <div class="slider-ends"><span class="slider-end">Breve</span><span class="slider-end">Lunghissima</span></div>
       </div>
     </div>
@@ -216,7 +217,7 @@
   </div>
 
   <div class="wine-cta">
-    <button class="btn-secondary" id="request-contact-btn" type="button">
+    <button class="btn-secondary" id="request-contact-btn" type="button" hidden>
       📬 Contattami
     </button>
     <button class="btn-save" id="save-wine-btn" type="button">
@@ -255,13 +256,15 @@
      SCREEN 5 — LEADERBOARD
 ══════════════════════════════════ -->
 <div class="screen" id="screen-leaderboard">
+  <!-- Decorazione Grappolo d'Uva (Top Right) -->
+  <img src="assets/grappolo.jpg" class="decor-grapes decor-grapes-tr" alt="Grappolo d'uva decorativo" aria-hidden="true" />
   <div class="dna-top-bar">
     <button class="dna-back" type="button" data-tab="passport" aria-label="Torna al passaporto">←</button>
   </div>
   <div class="dna-header">
     <div class="dna-eyebrow">Top Assaggiatori</div>
-    <h1 class="dna-title">Classifica Live</h1>
-    <p class="dna-subtitle">Chi assaggerà più vini oggi?</p>
+    <h1 class="dna-title">Classifica</h1>
+    <p class="dna-subtitle">Vini diversi esplorati · partecipazione facoltativa</p>
   </div>
 
   <div class="leaderboard-content" id="leaderboard-content">
@@ -272,7 +275,7 @@
 <!-- ═══════════════════════════════
      HIDDEN INSTAGRAM STORY LAYOUT
 ══════════════════════════════════ -->
-<div id="insta-story-layout" class="insta-story-hidden">
+<div id="insta-story-layout" aria-hidden="true" class="insta-story-hidden">
   <!-- Sfondo vibrante "Liquid Glass" -->
   <div class="insta-bg-shapes"></div>
   
@@ -302,7 +305,7 @@
      SETTINGS PANEL
 ══════════════════════════════════ -->
 <div class="settings-overlay" id="settings-overlay"></div>
-<div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-label="Impostazioni profilo">
+<div class="settings-panel" id="settings-panel" inert role="dialog" aria-modal="true" aria-label="Impostazioni profilo">
   <div class="settings-handle"></div>
   <div class="settings-header">
     <h2 class="settings-title">Il tuo profilo</h2>
@@ -318,6 +321,12 @@
       <input class="input-field" type="email" id="settings-email" placeholder="La tua email" autocomplete="email" readonly aria-readonly="true">
     </div>
   </div>
+    <div class="input-group">
+      <label class="input-label" for="settings-nickname">Nickname per la classifica (max 60 caratteri)</label>
+      <input class="input-field" id="settings-nickname" maxlength="60" autocomplete="off">
+      <label><input type="checkbox" id="settings-leaderboard"> Voglio apparire nella classifica di questo evento con il mio nickname e il numero di vini diversi esplorati.</label>
+      <p class="empty-state-text">Facoltativo. Puoi ritirare la partecipazione qui in qualsiasi momento. I voti e il passaporto restano privati.</p>
+    </div>
   <div class="settings-footer">
     <button class="btn-primary" id="settings-save-btn" type="button">Salva modifiche →</button>
     <button class="btn-secondary" id="settings-logout-btn" type="button">Esci dal profilo</button>

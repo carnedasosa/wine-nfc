@@ -1,3 +1,5 @@
+const { maintenance } = require('../../lib/availability');
+const { getTrustedClientIp } = require('../../lib/http-security');
 const { getVerifiedIdentity, AuthProviderError } = require('../../lib/supabase-auth');
 const { linkVerifiedIdentity, AccountLinkError } = require('../../lib/user-account');
 const { requireSameOrigin, setSessionCookies } = require('../../lib/http-security');
@@ -22,6 +24,7 @@ const {
  */
 module.exports = async function exchangeHandler(req, res) {
   setNoStore(res);
+  if (maintenance(res)) return;
   if (req.method !== 'POST') return methodNotAllowed(res, 'POST');
   if (!requireSameOrigin(req, res, { force: true })) return undefined;
 
@@ -35,7 +38,7 @@ module.exports = async function exchangeHandler(req, res) {
 
   let identity;
   try {
-    identity = await getVerifiedIdentity(accessToken);
+    identity = await getVerifiedIdentity(accessToken, getTrustedClientIp(req));
   } catch (error) {
     if (error instanceof AuthProviderError) {
       if (error.status >= 500) {

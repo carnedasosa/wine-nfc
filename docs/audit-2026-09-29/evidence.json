@@ -1,0 +1,94 @@
+{
+  "auditDate": "2026-09-29",
+  "event": {
+    "date": "2026-10-25",
+    "attendees": [
+      1500,
+      2000
+    ],
+    "peakArrivalsPerHour": 600
+  },
+  "node": "v22.13.1",
+  "tests": {
+    "passed": 62,
+    "failed": 4,
+    "total": 66,
+    "failedFiles": [
+      "tests/rate-limit.test.js",
+      "tests/frontend-security.test.js"
+    ]
+  },
+  "prismaValidate": "passed",
+  "build": {
+    "command": "npm run vercel-build",
+    "result": "local EPERM renaming Prisma Windows DLL; hosted build not tested"
+  },
+  "database": {
+    "scope": "Database configured by local .env; not verified as future production",
+    "counts": {
+      "User": 4566,
+      "mockUsers": 4565,
+      "Wine": 6,
+      "Event": 2,
+      "EventWine": 1,
+      "EventParticipant": 0,
+      "Tasting": 782
+    },
+    "DnaProfile": "missing; query returns P2021",
+    "appliedMigrations": [
+      "0_init",
+      "m2_models"
+    ],
+    "pendingMigration": "m3_dna_profile",
+    "tastingsEvent": "legacy-event-id",
+    "rlsEnabled": false,
+    "userAndTastingAnonAuthenticatedSelectInsertPrivileges": false
+  },
+  "productionDependencyAudit": {
+    "highAffectedPackages": 3,
+    "distinctAdvisories": 1,
+    "advisory": "GHSA-ggr8-5vv4-36mx",
+    "path": [
+      "prisma",
+      "@prisma/config",
+      "deepmerge-ts"
+    ]
+  },
+  "localEnv": {
+    "present": [
+      "DATABASE_URL",
+      "DIRECT_URL",
+      "JWT_SECRET",
+      "SUPABASE_URL",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "RATE_LIMIT_OTP_EMAIL"
+    ],
+    "absent": [
+      "APP_ORIGIN",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN",
+      "GEMINI_API_KEY",
+      "GEMINI_MODEL"
+    ]
+  },
+  "browser": {
+    "scope": "Local initial page, desktop viewport, unauthenticated",
+    "onboardingVisible": true,
+    "visibleDate": "14 giugno 2025",
+    "capturedWarningsErrors": 0,
+    "fullOtpFlowTested": false
+  },
+  "fingerprints": {
+    "app.js": "336252c553f7be625fcab587eb7e65e07469fb3fd5e321f1466b40f45c471ca4",
+    "index.html": "5f8a1f88ca7e76a236acd865fdfb5efad81e85fe65708d10383366fe60c6e96f",
+    "src/router.js": "c4b02ca03d7155c18490a2812fc76ef243c1940e0d44082ee0955230a3fac392",
+    "src/outbox.js": "90fb0b20808cd1717efb6ae0f5fd9fefd879f30cf0055e04101a6e52168055e6",
+    "api/tastings.js": "a00cbb1222a4afb1762a6ca2021679b6b6801d72055f64807aff33d111674b44",
+    "api/dna.js": "2492d2128cd7a5f24c2fa7e8e4ff7e7facd2e8a9652f1cdf71bc92ba39386af9",
+    "api/leaderboard.js": "cbba316ee0d863b78ece46ddea28e9100a85316fbc8a96038f2228ef3a4b93b9",
+    "lib/rate-limit.js": "cd445dbc6fc8cece0a6c6b0cc1d57edd8228d84bb03d8961acd3b5372bad5dc8",
+    "lib/auth.js": "236b5c114d7812c567ab1e4187c773f276125b936ff260d7d8243f80f4957645",
+    "prisma/schema.prisma": "82e3984bb44c5f4b5d845822302841c6d2bb323d61b7fc1745a14f3d6e448f6b",
+    "package-lock.json": "b36472077502c2d7886b285c5b75a76f218d67c9c40d9847e256459ebbb780de"
+  }
+}

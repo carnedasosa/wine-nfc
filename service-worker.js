@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vino-passport-static-v6-m4';
+const CACHE_NAME = 'vino-passport-static-v7-fiera';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   '/app.js',
   '/manifest.json',
   '/src/api.js',
+  '/src/outbox.js',
   '/src/router.js',
   '/src/state.js',
   '/src/utils.js',
@@ -17,88 +18,19 @@ const ASSETS_TO_CACHE = [
   '/src/ui/wine.js'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
-  );
+// L'aggiornamento si attiva quando le vecchie schede vengono chiuse: nessun reload durante un voto.
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE)));
 });
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const cacheNames = await caches.keys();
-    await Promise.all(
-      cacheNames
-        .filter(cacheName => cacheName !== CACHE_NAME)
-        .map(cacheName => caches.delete(cacheName))
-    );
-    await self.clients.claim();
-
-    // Ponte di rollout M1: forza i client ancora caricati dalla cache JWT v3
-    // a rileggere l'intero grafo ESM già installato atomicamente sopra.
-    const clients = await self.clients.matchAll({ type: 'window' });
-    await Promise.all(clients.map(client => (
-      typeof client.navigate === 'function' ? client.navigate(client.url) : undefined
-    )));
-  })());
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('vino-passport-') && key !== CACHE_NAME).map(key => caches.delete(key)))));
 });
-
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-tastings') {
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ type: 'FLUSH_OUTBOX' });
-        });
-      })
-    );
-  }
-});
-
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  if (url.pathname.startsWith('/api/')) {
-    if (url.pathname === '/api/wines' && event.request.method === 'GET') {
-      event.respondWith(
-        caches.open(CACHE_NAME).then(cache => {
-          return cache.match(event.request).then(cachedResponse => {
-            const fetchPromise = fetch(event.request).then(networkResponse => {
-              if (networkResponse.ok) {
-                cache.put(event.request, networkResponse.clone());
-              }
-              return networkResponse;
-            });
-            if (cachedResponse) {
-              event.waitUntil(fetchPromise.catch(e => console.warn('Background revalidation failed', e)));
-              return cachedResponse;
-            }
-            return fetchPromise;
-          });
-        })
-      );
-    }
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then(response => {
-        return caches.open(CACHE_NAME).then(cache => {
-          if (response.ok) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        });
-      });
-    })
-  );
+  if (url.origin !== self.location.origin || event.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
+  // Solo il grafo statico installato insieme, mai dati personali o risposte API.
+  const asset = event.request.mode === 'navigate' && ['/', '/index.html'].includes(url.pathname)
+    ? '/index.html' : url.pathname + url.search;
+  if (!ASSETS_TO_CACHE.includes(asset)) return;
+  event.respondWith(caches.open(CACHE_NAME).then(async cache => (await cache.match(asset)) || fetch(event.request)));
 });

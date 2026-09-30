@@ -45,6 +45,7 @@ describe('route OTP M1', () => {
     vi.stubEnv('SUPABASE_URL', 'https://project.supabase.co');
     vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test');
     delete process.env.RATE_LIMIT_OTP_EMAIL;
+    vi.stubEnv('RATE_LIMIT_OTP_IP', '5');
   });
 
   afterEach(() => {

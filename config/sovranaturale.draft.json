@@ -1,0 +1,10 @@
+{
+  "nome": "Sovranaturale",
+  "slug": "sovranaturale-2026",
+  "inizio": "2026-10-25T10:00:00+01:00",
+  "fine": "2026-10-25T20:00:00+01:00",
+  "timezone": "Europe/Rome",
+  "stato": "draft",
+  "orariProvvisori": true,
+  "nota": "Orari fittizi richiesti per preparare il collaudo. Confermare prima di attivare l’evento; nessun dato viene scritto nel database da questo file."
+}

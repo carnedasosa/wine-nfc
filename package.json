@@ -10,7 +10,13 @@
     "prisma:seed": "node prisma/seed.js",
     "test": "vitest run",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate"
+    "vercel-build": "prisma generate && npm run build",
+    "build": "node scripts/build.cjs",
+    "release:check": "node scripts/preflight.cjs",
+    "test:db": "node scripts/test-db-isolated.cjs",
+    "load:staging": "node scripts/load-staging.cjs",
+    "predev": "npm run build",
+    "prestart": "npm run build"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +30,14 @@
   "devDependencies": {
     "express": "^5.2.1",
     "postcss": "^8.5.23",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.0",
+    "qs": "6.16.0",
+    "nanoid": "3.3.18"
   }
 }

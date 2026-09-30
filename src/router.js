@@ -50,13 +50,13 @@ export function getVinoFromURL() {
   const params = new URLSearchParams(window.location.search);
   return {
     vino: params.get('vino'),
-    eventId: params.get('eventId') || 'legacy-event-id' // Default to legacy event if none provided
+    eventId: params.get('eventId') || null
   };
 }
 
 export function cleanURL() {
   const url = new URL(window.location.href);
   url.searchParams.delete('vino');
-  url.searchParams.delete('eventId');
+  // Conserva l'evento anche dopo apertura vino e reload.
   window.history.replaceState({}, document.title, url.toString());
 }

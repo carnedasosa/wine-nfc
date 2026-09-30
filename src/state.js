@@ -10,7 +10,9 @@ export const state = {
   vinoCorrente: null,
   emozioneSelezionata: null,
   viniQueue: [],
-  eventId: 'legacy-event-id'
+  eventId: '',
+  event: null,
+  tastingsLoaded: false
 };
 
 export let pendingVinoId = null;
@@ -54,6 +56,7 @@ export function clearUserState() {
   clearLegacyClientStorage();
   state.utente = { id: '', nome: '', email: '' };
   state.assaggi = [];
+  state.tastingsLoaded = false;
   state.vinoCorrente = null;
   state.emozioneSelezionata = null;
   pendingVinoId = null;
@@ -64,5 +67,10 @@ export function clearUserState() {
  * Nessun dato in Web Storage viene usato come prova di autenticazione.
  */
 export async function loadState(fetchTastings) {
-  state.assaggi = state.utente.id ? await fetchTastings(state.eventId) : [];
+  const userId = state.utente.id;
+  const eventId = state.eventId;
+  const tastings = userId ? await fetchTastings(eventId) : [];
+  if (state.utente.id !== userId || state.eventId !== eventId) return;
+  state.assaggi = tastings;
+  state.tastingsLoaded = Boolean(userId);
 }

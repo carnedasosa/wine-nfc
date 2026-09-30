@@ -1,0 +1,11 @@
+.env
+.env.*
+password-supabase.txt
+*.sessions.json
+docs/
+tests/
+report*.json
+generated/
+dist/
+api/auth/mock-login.js
+update_styles.py

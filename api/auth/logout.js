@@ -1,3 +1,4 @@
+const { getTrustedClientIp } = require('../../lib/http-security');
 const {
   AuthProviderError,
   refreshAuthSession,
@@ -42,14 +43,14 @@ module.exports = async function logoutHandler(req, res) {
           error.status < 500 &&
           cookies[cookieNames.refresh]
         ) {
-          const renewed = await refreshAuthSession(cookies[cookieNames.refresh]);
+          const renewed = await refreshAuthSession(cookies[cookieNames.refresh], getTrustedClientIp(req));
           await revokeAuthSession(renewed.accessToken);
         } else {
           throw error;
         }
       }
     } else if (cookies[cookieNames.refresh]) {
-      const renewed = await refreshAuthSession(cookies[cookieNames.refresh]);
+      const renewed = await refreshAuthSession(cookies[cookieNames.refresh], getTrustedClientIp(req));
       await revokeAuthSession(renewed.accessToken);
     }
   } catch (error) {

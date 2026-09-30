@@ -34,8 +34,8 @@ function renderList(container, leaderboard) {
     renderEmptyState(
       container,
       '🏆',
-      'Nessun assaggio registrato',
-      'Inizia a degustare per primo e conquista la vetta!'
+      'Nessun partecipante in classifica',
+      'Partecipa dalle impostazioni del profilo scegliendo un nickname. La classifica conta vini diversi, non quantità bevute.'
     );
     return;
   }
@@ -75,6 +75,7 @@ export async function renderLeaderboard() {
 
   const now = Date.now();
   const viewerId = state.utente.id || '';
+  const eventId = state.eventId;
   if (cachedData && cachedViewerId === viewerId && now - lastFetchTime < CACHE_TTL) {
     renderList(container, cachedData);
     return;
@@ -87,10 +88,10 @@ export async function renderLeaderboard() {
   if (!cachedData) renderLoading(container);
 
   try {
-    const leaderboard = await API.getLeaderboard();
+    const leaderboard = await API.getLeaderboard(eventId);
     if (
       generation !== cacheGeneration ||
-      state.utente.id !== viewerId ||
+      state.utente.id !== viewerId || state.eventId !== eventId ||
       activeRequest !== requestMarker
     ) return;
     cachedData = Array.isArray(leaderboard) ? leaderboard : [];

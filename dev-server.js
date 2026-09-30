@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const os = require('os');
+
 const { applySecurityHeaders } = require('./lib/http-security');
 
 const app = express();
@@ -13,6 +13,8 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '16kb', strict: true }));
 
 // Le route API devono precedere express.static.
+app.all('/api/health', require('./api/health'));
+app.all('/api/participation', require('./api/participation'));
 app.all('/api/wines', require('./api/wines'));
 app.all('/api/leaderboard', require('./api/leaderboard'));
 app.all('/api/auth/request-otp', require('./api/auth/request-otp'));
@@ -21,7 +23,7 @@ app.all('/api/auth/exchange', require('./api/auth/exchange'));
 app.all('/api/auth/session', require('./api/auth/session'));
 app.all('/api/auth/refresh', require('./api/auth/refresh'));
 app.all('/api/auth/logout', require('./api/auth/logout'));
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.all('/api/auth/mock-login', require('./api/auth/mock-login'));
 }
 app.all('/api/tastings', require('./api/tastings'));
@@ -46,24 +48,8 @@ app.use((error, req, res, next) => {
   return next(error);
 });
 
-// Il perimetro statico e il bind di rete appartengono a M0 e restano invariati.
-app.use(express.static(path.join(__dirname, '.')));
-
-const networkInterfaces = os.networkInterfaces();
-let localIp = 'localhost';
-for (const interfaceName in networkInterfaces) {
-  const iface = networkInterfaces[interfaceName];
-  for (let i = 0; i < iface.length; i += 1) {
-    const alias = iface[i];
-    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-      localIp = alias.address;
-    }
-  }
-}
-
-const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('\n🍷 Server locale di sviluppo avviato!');
-  console.log(`👉 Accesso dal PC: http://localhost:${PORT}`);
-  console.log(`👉 Accesso da Mobile: http://${localIp}:${PORT}\n`);
-});
+// Non esporre la radice del repository.
+app.use(express.static(path.join(__dirname, 'dist')));
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '127.0.0.1';
+app.listen(PORT, HOST, () => console.log('Wine NFC: http://' + HOST + ':' + PORT));

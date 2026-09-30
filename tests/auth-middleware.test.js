@@ -57,7 +57,7 @@ describe('middleware auth M1', () => {
     };
 
     await expect(authenticateRequest(req, deps)).resolves.toEqual(USER);
-    expect(deps.getVerifiedIdentity).toHaveBeenCalledWith('verified-access');
+    expect(deps.getVerifiedIdentity).toHaveBeenCalledWith('verified-access', 'unknown');
     expect(deps.findAccountBySubject).toHaveBeenCalledWith(SUBJECT);
     expect(req.userId).toBe(USER.id);
     expect(req.authSubject).toBe(SUBJECT);

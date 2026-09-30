@@ -194,9 +194,6 @@ function validateUuid(value, field = 'id') {
   if (field === 'eventId' && trimmed === 'legacy-event-id') {
     return trimmed;
   }
-  if (field === 'idempotencyKey' && trimmed.startsWith('mock-uuid-')) {
-    return trimmed;
-  }
   if (!UUID_PATTERN.test(trimmed)) {
     throw new ValidationError({ [field]: `${field} non è valido` });
   }
@@ -305,7 +302,10 @@ function validateProfileUpdatePayload(body) {
 
 function validateTastingPayload(body) {
   assertPlainObject(body);
-  assertAllowedKeys(body, ['eventId', 'wineId', 'acidita', 'corpo', 'persistenza', 'emozione', 'idempotencyKey']);
+  assertAllowedKeys(body, ['eventId', 'wineId', 'acidita', 'corpo', 'persistenza', 'emozione', 'idempotencyKey', 'baseVersion']);
+  if (!Number.isSafeInteger(body.baseVersion) || body.baseVersion < 0) {
+    throw new ValidationError({ baseVersion: 'Ricarica gli assaggi prima di salvare' });
+  }
 
   const emozione = validateText(body.emozione, {
     field: 'emozione',
@@ -326,7 +326,8 @@ function validateTastingPayload(body) {
     corpo: parseRating(body.corpo, 'corpo'),
     persistenza: parseRating(body.persistenza, 'persistenza'),
     emozione,
-    idempotencyKey: validateUuid(body.idempotencyKey, 'idempotencyKey')
+    idempotencyKey: validateUuid(body.idempotencyKey, 'idempotencyKey'),
+    baseVersion: body.baseVersion
   };
 }
 

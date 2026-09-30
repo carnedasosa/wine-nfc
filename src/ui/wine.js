@@ -2,11 +2,15 @@
 // UI / WINE — scheda vino, slider, emozioni, salvataggio
 // ═══════════════════════════════════════════════════
 
-import { state, viniDB } from '../state.js';
+import { state, viniDB, loadState } from '../state.js';
 import { API } from '../api.js';
 import { showScreen } from '../router.js';
 import { safeHexColor, showToast } from '../utils.js';
-import { saveTastingToOutbox, registerSync } from '../outbox.js';
+import { clearDnaCache } from './dna.js';
+import { clearLeaderboardCache } from './leaderboard.js';
+
+let saving = false;
+let pendingRequest = null;
 
 const EMOTIONS = new Set(['Sorpresa', 'Nostalgia', 'Energia', 'Pace', 'Complessità', 'Radici']);
 
@@ -20,19 +24,24 @@ export function openWine(vino) {
     return;
   }
   state.vinoCorrente = vino;
-  state.emozioneSelezionata = null;
+  const previous = state.assaggi.find(item => item.vino.id === vino.id);
+  state.emozioneSelezionata = previous?.emozione || null;
 
 
   // Reset sliders
   ['acidita', 'corpo', 'persistenza'].forEach(s => {
     const slider = document.getElementById('slider-' + s);
-    slider.value = 3;
-    slider.style.setProperty('--val', '50%');
-    document.getElementById(s + '-val').textContent = '3';
+    slider.value = previous?.[s] || 3;
+    updateSlider(s, slider);
   });
 
   // Reset emozioni
   document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('[data-emotion]').forEach(c => {
+    const selected = c.dataset.emotion === state.emozioneSelezionata;
+    c.classList.toggle('selected', selected);
+    c.setAttribute('aria-pressed', String(selected));
+  });
 
   // Colore hero
   const color = safeHexColor(vino.colore);
@@ -42,7 +51,7 @@ export function openWine(vino) {
   document.getElementById('wine-emoji').textContent = vino.emoji;
   document.getElementById('wine-cantina-label').textContent = vino.cantina;
   document.getElementById('wine-name').textContent = vino.nome;
-  document.getElementById('wine-meta').textContent = `${vino.annata} · ${vino.vitigno} · ${vino.territorio}`;
+  document.getElementById('wine-meta').textContent = [vino.annata, vino.vitigno, vino.territorio].filter(Boolean).join(' · ');
   document.getElementById('wine-desc').textContent = vino.desc;
 
   showScreen('wine');
@@ -64,6 +73,7 @@ export function updateSlider(tipo, el) {
 export function selectEmo(el, emo) {
   if (!EMOTIONS.has(emo)) return;
   document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('[data-emotion]').forEach(c => c.setAttribute('aria-pressed', String(c === el)));
   el.classList.add('selected');
   state.emozioneSelezionata = emo;
 }
@@ -73,12 +83,14 @@ export function selectEmo(el, emo) {
  * @param {() => void} renderHome
  */
 export async function saveWine(renderHome) {
+  if (saving) return;
   if (!state.utente || !state.utente.id) {
     return showToast('Sessione non valida, utente mancante', 'error');
   }
 
   const vino = state.vinoCorrente;
   if (!vino?.id) return showToast('Seleziona un vino valido', 'error');
+  if (!navigator.onLine) return showToast('Connessione assente: resta su questa scheda e riprova quando torna la rete.', 'error');
   const btn = document.querySelector('.wine-cta .btn-save');
   if (btn) btn.disabled = true;
 
@@ -93,31 +105,30 @@ export async function saveWine(renderHome) {
     return;
   }
 
-  const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-    ? crypto.randomUUID() 
-    : 'mock-uuid-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
-
+  saving = true;
+  const owner = state.utente.id;
+  const eventId = state.eventId;
   try {
+    if (!state.tastingsLoaded) await loadState(API.getTastings);
+    if (owner !== state.utente.id || eventId !== state.eventId) return;
     const payload = {
-      eventId: state.eventId,
+      eventId,
       wineId: vino.id,
       acidita,
       corpo,
       persistenza,
       emozione,
-      idempotencyKey
+      baseVersion: state.assaggi.find(a => a.vino.id === vino.id)?.version || 0
     };
-
-    if (!navigator.onLine) {
-      await saveTastingToOutbox(payload);
-      registerSync(); // try registering sync if possible
-      showToast(`${vino.nome} salvato offline. Verrà sincronizzato appena possibile.`, 'success');
-    } else {
-      await API.saveTasting(payload);
-      showToast(`${vino.nome} salvato nel passaporto ✓`);
+    const signature = JSON.stringify({ owner, ...payload });
+    if (pendingRequest?.signature !== signature) {
+      pendingRequest = { signature, payload: { ...payload, idempotencyKey: crypto.randomUUID() } };
     }
-
-    const assaggio = { vino, acidita, corpo, persistenza, emozione, timestamp: new Date() };
+    const saved = await API.saveTasting(pendingRequest.payload);
+    pendingRequest = null;
+    if (owner !== state.utente.id || eventId !== state.eventId) return;
+    showToast(`${vino.nome} salvato nel passaporto ✓`);
+    const assaggio = { vino, acidita: saved.acidita, corpo: saved.corpo, persistenza: saved.persistenza, emozione: saved.emozione, version: saved.version, timestamp: new Date(saved.createdAt) };
     const existing = state.assaggi.findIndex(a => a.vino.id === vino.id);
     if (existing >= 0) {
       state.assaggi[existing] = assaggio;
@@ -125,14 +136,19 @@ export async function saveWine(renderHome) {
       state.assaggi.push(assaggio);
     }
     
-    setTimeout(() => {
-      showScreen('home');
-      renderHome();
-    }, 800);
+    clearDnaCache();
+    clearLeaderboardCache();
+    showScreen('home');
+    renderHome();
   } catch (e) {
+    if (e.status === 409) {
+      pendingRequest = null;
+      await loadState(API.getTastings).catch(() => { state.tastingsLoaded = false; });
+    }
     console.error('[saveWine] error:', e);
     showToast(e.message || 'Errore nel salvataggio. Riprova.', 'error');
   } finally {
+    saving = false;
     if (btn) btn.disabled = false;
   }
 }
@@ -159,5 +175,5 @@ export function simulateNfcTap(openWineFn) {
 }
 
 export function requestContact() {
-  showToast('Richiesta inviata alla cantina 📬');
+  showToast('I contatti delle cantine non sono ancora disponibili.');
 }

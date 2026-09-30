@@ -51,13 +51,7 @@ export function clearDnaCache() {
 }
 
 function generaDNAFallback(acidita, corpo) {
-  const profili = [
-    'Un palato che non cerca conforto — cerca verità. I vini scelti oggi parlano di territorio con accento duro, senza mediazioni. C’è una preferenza per l’acidità viva, per quella tensione che tiene sveglio.',
-    'Un degustatore del confine, attratto da vini che non si lasciano catalogare facilmente. La struttura non spaventa, anzi invita — come un racconto che richiede attenzione prima di rivelare il finale.',
-    'Il profilo di chi lascia spazio al vino di parlare. Preferenza per leggerezza e precisione, come un fotografo che sceglie la luce giusta invece di riempire il frame.'
-  ];
-  const index = Math.floor((acidita + corpo) / 4);
-  return profili[Math.min(index, profili.length - 1)];
+  return 'Nei tuoi assaggi l’acidità media è ' + acidita + '/5 e il corpo medio è ' + corpo + '/5. È un riepilogo delle intensità registrate, non una misura delle tue preferenze.';
 }
 
 function rating(value) {
@@ -144,14 +138,14 @@ export async function renderDNA() {
   }
 
   document.getElementById('dna-subtitle').textContent =
-    `Basato su ${assaggi.length} assaggi di ${state.utente.nome || 'Degustatore'}`;
+    `Basato su ${assaggi.length} ${assaggi.length === 1 ? 'assaggio' : 'assaggi'} di ${state.utente.nome || 'Degustatore'}`;
 
   renderLoading(container);
 
   let result;
   try {
     result = await API.getDNA(state.eventId);
-    if (!result || !result.dnaText) throw new Error('Risposta DNA vuota');
+    if (!result || !result.dnaText || !result.stats) throw new Error('Risposta DNA vuota');
   } catch (error) {
     console.error('Errore backend DNA:', error);
     
@@ -170,6 +164,7 @@ export async function renderDNA() {
     const tags = buildTags(assaggi, averages.acidita, averages.corpo, topEmotions);
     
     result = {
+      fallback: true,
       dnaText: generaDNAFallback(averages.acidita, averages.corpo),
       stats: { averages, topEmo: topEmotions, cantine, tags, assaggiCount: assaggi.length }
     };
@@ -178,6 +173,10 @@ export async function renderDNA() {
   if (generation !== dnaGeneration || state.utente.id !== userId) return;
 
   renderResult(container, String(result.dnaText), result.stats.tags, result.stats.cantine, result.stats.averages);
+  const label = appendElement(container, 'p', 'empty-state-text', result.fallback
+    ? (result.pending ? 'AI in elaborazione. Questo è un riepilogo descrittivo; riapri Wine DNA tra poco.' : 'Riepilogo descrittivo. L’analisi AI non è disponibile in questo momento.')
+    : 'Testo generato con AI a partire dalle intensità e dalle emozioni registrate.');
+  label.setAttribute('role', 'status');
   scheduleStoryImage(generation, userId, result.stats.averages);
 }
 
@@ -201,7 +200,7 @@ function scheduleStoryImage(generation, userId, averages) {
     const originalScroll = window.scrollY;
     try {
       const canvas = await window.html2canvas(layout, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         backgroundColor: null,
         width: 1080,

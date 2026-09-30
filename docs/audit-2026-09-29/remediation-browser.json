@@ -1,0 +1,25 @@
+{
+  "testedAt": "2026-09-29T17:52:12.013Z",
+  "browser": "Codex in-app Chromium",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "environment": "localhost + schema PostgreSQL temporaneo",
+  "authentication": "sessione sintetica; OTP reale non provato",
+  "checks": [
+    "apertura passaporto",
+    "opt-in e nickname",
+    "classifica mostra nickname",
+    "valori del voto precaricati",
+    "modifica voto persistita e recuperata dopo reload",
+    "DNA descrittivo e immagine pronta",
+    "nuova versione dopo chiusura scheda senza reload forzato",
+    "dialogo accessibile e sfondo inert",
+    "ritiro classifica e sparizione nickname",
+    "file backend/documentazione non pubblicati"
+  ],
+  "consoleErrors": [],
+  "liveAI": false,
+  "realPhones": false
+}

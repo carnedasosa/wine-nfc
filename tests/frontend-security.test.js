@@ -63,13 +63,14 @@ describe('regressioni statiche M1', () => {
     expect(read('package.json')).not.toMatch(/jsonwebtoken/);
   });
 
-  it('invalida la cache che poteva contenere il login legacy', () => {
+  it('aggiorna il grafo statico senza forzare reload durante un voto', () => {
     const worker = read('service-worker.js');
-    expect(worker).toContain('vino-passport-static-v6-m2');
+    expect(worker).not.toMatch(/vino-passport-static-v[1-6]-/);
+    expect(worker).toContain('/src/outbox.js');
     expect(worker).toContain('/src/ui/onboarding.js');
-    expect(worker).toContain('self.skipWaiting()');
-    expect(worker).toContain('self.clients.claim()');
-    expect(worker).toContain('client.navigate(client.url)');
+    expect(worker).not.toContain('self.skipWaiting()');
+    expect(worker).not.toContain('self.clients.claim()');
+    expect(worker).not.toContain('client.navigate(client.url)');
   });
 
   it('cancella gli artefatti Wine DNA e invalida le generazioni pendenti al cambio sessione', () => {

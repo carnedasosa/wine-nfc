@@ -15,7 +15,7 @@ Il progetto è oggi un MVP funzionante, ma non è ancora idoneo a un rilascio pu
 - stored XSS nel Wine DNA;
 - assaggi duplicabili e classifica manipolabile;
 - dati Wine DNA calcolati dal client invece che dal server;
-- modello Anthropic ritirato e fallback difettoso;
+- modello AI ritirato e fallback difettoso (ora risolto migrando a Gemini);
 - assenza di rate limit, migrazioni versionate, osservabilità e test dei flussi critici;
 - PWA dichiarata offline-first ma priva di una sincronizzazione offline affidabile;
 - lacune di accessibilità, privacy e lifecycle operativo.
@@ -33,7 +33,7 @@ Il programma è diviso in sette milestone. Le milestone M0–M3 sono bloccanti a
 | Migrazioni | database non gestito da Prisma Migrate |
 | Test | 5 test passati, ma nessun flusso production critico coperto |
 | Supply chain npm | 0 advisory note su 188 dipendenze al momento dell'audit |
-| AI | modello hard-coded ritirato; fallback difettoso sulle eccezioni |
+| AI | modello hard-coded ritirato (ora su Gemini); fallback difettoso |
 | Capacity | nessun load test staging esistente |
 
 ### Verdetto di rilascio
@@ -85,7 +85,7 @@ Supabase Pooler / PostgreSQL
   └─ backup/PITR verificato
           │
           ▼
-Anthropic
+Google Gemini
   ├─ prompt derivato solo dal DB
   ├─ modello configurabile e supportato
   ├─ timeout, quota e circuit breaker
@@ -503,8 +503,8 @@ Il client deve inviare al massimo `eventId` e la richiesta di generazione. Il se
 
 #### Implementazione
 
-- spostare il modello in `ANTHROPIC_MODEL`;
-- configurare un modello attivo e testato; alla data del piano il sostituto raccomandato è `claude-sonnet-4-6`;
+- configurare il modello tramite `GEMINI_MODEL`;
+- usare un modello attivo e testato come `gemini-1.5-flash`;
 - ridurre `max_tokens` a quanto serve per 3–4 frasi;
 - timeout rigido di 5–8 secondi con `AbortController`;
 - retry solo per `429/5xx`, con jitter e dentro il budget temporale;
@@ -547,7 +547,7 @@ Memorizzare o mettere in cache:
 
 #### Criteri di accettazione
 
-- riaprire Wine DNA senza nuovi assaggi non richiama Anthropic;
+- riaprire Wine DNA senza nuovi assaggi non richiama l'AI;
 - due richieste simultanee per la stessa versione vengono coalesciate;
 - quota e budget massimo per evento configurabili;
 - dashboard con chiamate, errori, token, costo e cache hit rate;

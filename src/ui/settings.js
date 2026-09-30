@@ -8,21 +8,43 @@ import { clearDnaCache, renderDNA } from './dna.js';
 import { clearLeaderboardCache } from './leaderboard.js';
 import { showToast } from '../utils.js';
 
-export function openSettings() {
+let lastFocus = null;
+let settingsGeneration = 0;
+
+export async function openSettings() {
   if (!state.utente.id) {
     showToast('Completa il profilo prima di modificarlo', 'error');
     return;
   }
 
+  const generation = ++settingsGeneration;
+  lastFocus = document.activeElement;
+  const saveButton = document.getElementById('settings-save-btn');
+  saveButton.disabled = true;
+  document.getElementById('settings-nickname').value = '';
+  document.getElementById('settings-leaderboard').checked = false;
+  document.getElementById('settings-panel').inert = false;
+  document.querySelectorAll('.screen').forEach(screen => { screen.inert = true; });
   const nameInput = document.getElementById('settings-nome');
   document.getElementById('settings-email').value = state.utente.email || '';
   nameInput.value = state.utente.nome || '';
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('settings-panel').classList.add('open');
   nameInput.focus();
+  try {
+    const participation = await API.getParticipation(state.eventId);
+    if (generation !== settingsGeneration) return;
+    document.getElementById('settings-nickname').value = participation.nickname || '';
+    document.getElementById('settings-leaderboard').checked = participation.consensoLeaderboard;
+    saveButton.disabled = false;
+  } catch (error) { if (generation === settingsGeneration) showToast(error.message, 'error'); }
 }
 
 export function closeSettings() {
+  settingsGeneration++;
+  document.getElementById('settings-panel').inert = true;
+  document.querySelectorAll('.screen').forEach(screen => { screen.inert = false; });
+  if (lastFocus?.isConnected) lastFocus.focus();
   document.getElementById('settings-overlay').classList.remove('open');
   document.getElementById('settings-panel').classList.remove('open');
 }
@@ -37,10 +59,7 @@ export async function saveSettings() {
     return;
   }
 
-  if (nome === state.utente.nome) {
-    closeSettings();
-    return;
-  }
+
 
   if (!state.utente.id) {
     showToast('Sessione non valida. Accedi di nuovo.', 'error');
@@ -49,9 +68,13 @@ export async function saveSettings() {
 
   button.disabled = true;
   try {
-    const result = await API.updateUser(state.utente.id, nome);
-    const user = result?.user || result;
-    setAuthenticatedUser(user);
+    if (nome !== state.utente.nome) {
+      const result = await API.updateUser(state.utente.id, nome);
+      setAuthenticatedUser(result?.user || result);
+    }
+    await API.saveParticipation({ eventId: state.eventId,
+      nickname: document.getElementById('settings-nickname').value.trim(),
+      consensoLeaderboard: document.getElementById('settings-leaderboard').checked });
     clearDnaCache();
     clearLeaderboardCache();
     if (document.getElementById('screen-dna')?.classList.contains('active')) {
