@@ -262,7 +262,7 @@ async function initApp() {
     const url = new URL(window.location.href);
     url.searchParams.set('eventId', state.eventId);
     window.history.replaceState(null, '', url.pathname + url.search);
-    document.querySelector('.fiera-name').textContent = catalog.event.nome + ' · Bari · ' + new Date(catalog.event.inizio).toLocaleDateString('it-IT', { timeZone: catalog.event.timezone });
+    document.querySelector('.fiera-name').textContent = 'Bari · ' + new Date(catalog.event.inizio).toLocaleDateString('it-IT', { timeZone: catalog.event.timezone, day: 'numeric', month: 'long', year: 'numeric' });
   } else {
     console.error('Catalogo non disponibile:', winesResult.reason);
     document.getElementById('loading-status').textContent = winesResult.reason?.message || 'Catalogo non disponibile';

@@ -1,9 +1,9 @@
 {
-  "name": "Vino Passport",
-  "short_name": "Vino",
+  "name": "Passaporto del vino · Sovra Naturale",
+  "short_name": "Passaporto",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0d0d0d",
-  "background_color": "#0d0d0d",
+  "theme_color": "#59408d",
+  "background_color": "#FDF5E6",
   "icons": []
 }

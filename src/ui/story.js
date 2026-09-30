@@ -84,7 +84,7 @@ async function updatePreview() {
     preview.width = rendered.width; preview.height = rendered.height;
     preview.getContext('2d').drawImage(rendered, 0, 0);
     preview.hidden = false;
-    preview.setAttribute('aria-label', `Storia Sovranaturale. ${preferences.showName ? snapshot.name + '. ' : ''}${snapshot.caption} Palette ${resolveStoryTheme(snapshot, preferences).label}.`);
+    preview.setAttribute('aria-label', `Il mio Wine DNA, scoperto a Sovra Naturale. ${preferences.showName ? snapshot.name + '. ' : ''}${snapshot.caption} Palette ${resolveStoryTheme(snapshot, preferences).label}.`);
     readyFile = new File([blob], 'sovranaturale-wine-dna.png', { type: 'image/png' });
     element('story-status').textContent = 'La tua storia è pronta.';
     setBusy(false);
@@ -139,7 +139,7 @@ async function shareStory() {
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       sharing = true; setBusy(false);
       // File already prepared: native sharing starts directly within the user's tap.
-      await navigator.share({ files: [file], title: 'Il mio Wine DNA · Sovranaturale' });
+      await navigator.share({ files: [file], title: 'Il mio Wine DNA, scoperto a Sovra Naturale' });
     } else {
       downloadBlob(file, file.name);
       showToast('Immagine salvata. Aggiungila alla tua storia Instagram.');
