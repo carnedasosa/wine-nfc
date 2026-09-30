@@ -249,7 +249,7 @@
     <!-- Popolato da JS -->
   </div>
 
-  <button class="share-btn" id="share-dna-btn" type="button">↗ Condividi il tuo Wine DNA</button>
+  <button class="share-btn" id="share-dna-btn" type="button">Crea la tua storia ↗</button>
 </div>
 
 <!-- ═══════════════════════════════
@@ -272,34 +272,49 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     HIDDEN INSTAGRAM STORY LAYOUT
-══════════════════════════════════ -->
-<div id="insta-story-layout" aria-hidden="true" class="insta-story-hidden">
-  <!-- Sfondo vibrante "Liquid Glass" -->
-  <div class="insta-bg-shapes"></div>
-  
-  <div class="insta-glass-card">
-    <div class="insta-eyebrow">Il mio profilo sensoriale</div>
-    <div class="insta-header">Wine DNA di <span id="insta-user-name"></span></div>
-    
-    <div id="insta-dna-text" class="insta-dna-text">
-      <!-- Paragrafo AI iniettato qui -->
-    </div>
-    
-    <div class="insta-stats">
-      <div id="insta-radar-bars">
-        <!-- Barre acidità, corpo, persistenza iniettate qui -->
+<!-- Storia Sovranaturale: anteprima e PNG condividono lo stesso canvas. -->
+<dialog class="story-dialog" id="story-dialog" aria-labelledby="story-title" aria-describedby="story-intro">
+  <header class="story-heading">
+    <div><p class="story-eyebrow">Sovranaturale · Wine DNA</p><h2 id="story-title">La tua storia, a modo tuo.</h2></div>
+    <button type="button" id="story-close-btn" class="story-close" aria-label="Chiudi la storia" autofocus>×</button>
+  </header>
+  <p class="story-intro" id="story-intro">I tuoi assaggi diventano un piccolo poster da portare con te.</p>
+  <div class="story-workspace">
+    <div class="story-art-column">
+      <div class="story-preview-wrap" id="story-preview-wrap" aria-busy="true">
+        <canvas id="story-preview" width="1080" height="1920" role="img" hidden>Anteprima della tua storia Sovranaturale.</canvas>
+        <span class="story-preview-placeholder" aria-hidden="true">Un calice,<br>un ricordo.</span>
+      </div>
+      <div class="story-variants" role="group" aria-label="Scegli la composizione">
+        <button type="button" id="story-prev-btn" aria-label="Composizione precedente">←</button>
+        <span id="story-variant-label">Composizione 1 di 3</span>
+        <button type="button" id="story-next-btn" aria-label="Composizione successiva">→</button>
       </div>
     </div>
-    
-    <div id="insta-tags-container" class="insta-tags">
-      <!-- Tag (es. Vini tesi, Nostalgia, ecc.) iniettati qui -->
+    <div class="story-options">
+      <p class="story-summary" id="story-summary"></p>
+      <fieldset class="story-palette-field">
+        <legend>Il colore delle tue sensazioni</legend>
+        <div class="story-palettes" id="story-palettes" aria-label="Palette colori"></div>
+        <div class="story-theme-selection"><span id="story-theme-label"></span><button type="button" data-story-theme="auto" class="story-auto" aria-pressed="true">Automatico</button></div>
+      </fieldset>
+      <div class="story-toggles">
+        <label class="story-toggle" for="story-show-name"><span>Mostra il mio nome</span><input type="checkbox" id="story-show-name" checked></label>
+        <label class="story-toggle" for="story-show-details"><span>Aggiungi i valori sensoriali<small>Acidità, corpo e persistenza</small></span><input type="checkbox" id="story-show-details"></label>
+      </div>
+      <p class="story-note">Puoi cambiare stile: le tue sensazioni restano le stesse.</p>
+      <p class="story-status" id="story-status" role="status" aria-live="polite"></p>
+      <button type="button" id="story-retry-btn" class="story-auto" hidden>Riprova</button>
     </div>
   </div>
-  
-  <div class="insta-footer">Sovranaturale 2026</div>
-</div>
+  <footer class="story-footer">
+    <div class="story-actions">
+      <button type="button" id="story-share-btn" class="btn-primary" disabled>Condividi la storia ↗</button>
+      <button type="button" id="story-save-btn" class="btn-secondary" disabled>Salva immagine</button>
+    </div>
+    <p class="story-save-hint">Salvala e aggiungila alle tue storie Instagram.</p>
+  </footer>
+</dialog>
 
 <!-- ═══════════════════════════════
      SETTINGS PANEL
@@ -387,7 +402,6 @@
   </div>
 </dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous" defer></script>
 <script src="app.js" type="module"></script>
 </body>
 </html>

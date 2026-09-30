@@ -39,6 +39,7 @@ import {
   updateSlider
 } from './src/ui/wine.js';
 import { clearDnaCache, renderDNA, shareDNA } from './src/ui/dna.js';
+import { bindStoryEvents } from './src/ui/story.js';
 import { clearLeaderboardCache, renderLeaderboard } from './src/ui/leaderboard.js';
 import {
   closeSettings,
@@ -97,6 +98,7 @@ function returnToOnboarding(message) {
 
 function bindStaticEvents() {
   bindTutorialEvents();
+  bindStoryEvents();
   document.getElementById('onboarding-request-btn').addEventListener('click', requestOtp);
   document.getElementById('onboarding-verify-btn').addEventListener('click', verifyOnboardingOtp);
   document.getElementById('onboarding-reset-btn').addEventListener('click', restartOtpFlow);
@@ -143,7 +145,7 @@ function bindStaticEvents() {
   });
 
   document.addEventListener('keydown', event => {
-    if (document.getElementById('tutorial-dialog').open) return;
+    if (document.getElementById('tutorial-dialog').open || document.getElementById('story-dialog').open) return;
     if (event.key === 'Escape') closeSettings();
     const panel = document.getElementById('settings-panel');
     if (event.key === 'Tab' && !panel.inert) {

@@ -10,3 +10,4 @@ generated/
 !.env.example
 .vercel/
 *.sessions.json
+output/story-verification/

@@ -43,11 +43,10 @@ describe('regressioni statiche M1', () => {
     expect(read('src/state.js')).toContain('vinoPassportState');
   });
 
-  it('applica SRI alla sola dipendenza JavaScript CDN', () => {
+  it('genera le storie senza dipendenze JavaScript CDN', () => {
     const html = read('index.html');
-    expect(html).toContain('html2canvas/1.4.1/html2canvas.min.js');
-    expect(html).toMatch(/integrity=\x22sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H\x22/);
-    expect(html).toMatch(/crossorigin=\x22anonymous\x22/);
+    expect(html).not.toContain('html2canvas');
+    expect(html).not.toMatch(/<script[^>]*src=\x22https?:/);
   });
 
   it('rende la email verificata non modificabile dal profilo', () => {

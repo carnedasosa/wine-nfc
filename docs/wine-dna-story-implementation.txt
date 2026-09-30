@@ -1,0 +1,39 @@
+SOVRANATURALE — WINE DNA STORIES
+Implementation notes, 2026-09-30
+
+Flow
+Wine DNA → Crea la tua storia → preview → composition/palette/name/details → share or save PNG.
+Canvas export: 1080 × 1920. Preview and downloaded PNG use the same canvas.
+No per-user image-generation call, no additional AI cost for changing a story.
+The story uses the already-loaded tastings and is available while the text analysis is pending.
+Six palettes follow recorded emotions; three compositions are stable per user/event, with manual override.
+Preferences are kept on this device by user and event. Only graphical preferences are stored, never the name, email, tastings, or generated PNG.
+Typography and illustrations are self-hosted and included in the static service-worker cache.
+No database migration, backend API change, or production deployment is part of this change.
+
+Assets
+assets/story/bottle.png and assets/story/glass.png were created with the built-in image_gen tool using the approved collage as reference, then copied into the workspace. Genuine transparent backgrounds.
+assets/story/sovranaturale-source.png is the user's original screenshot, unchanged. The renderer crops surrounding space and uses the existing lettering. Its original resolution remains a limit; an original vector logo can replace it later.
+Fonts: Anton and Kalam, from google/fonts, with bundled OFL licenses.
+https://github.com/google/fonts/tree/main/ofl/anton
+https://github.com/google/fonts/tree/main/ofl/kalam
+
+Final asset prompts (built-in image_gen, not API/CLI)
+BOTTLE
+Extract/recreate ONLY the purple wine bottle illustration from the provided approved Sovranaturale collage poster, as one standalone production illustration asset on a genuinely transparent background. Keep the exact handmade screenprinted/cut-paper style, deep violet #59408d distressed ink, warm cream paper label with violet grape bunch. Bottle should stand perfectly UPRIGHT, no rotation, complete bottle from lip to base, centered, fill 90% of canvas height with small transparent margin. Portrait image. Preserve the approved bottle silhouette, cream rough paper edge, visible handcrafted grain. No glass, no colored background, no paper panels, no shadows, no words, no letters, no logo, no sticker, no rays, no other objects. Cream label and narrow cream rough outline are opaque; all surrounding background truly transparent. Distressed print inside bottle should reveal warm cream not look metallic. This is an asset for compositing the approved design, not a new art style.
+
+GLASS
+Extract/recreate ONLY the stemmed wine glass illustration from the provided approved Sovranaturale collage poster as one standalone production illustration on a genuinely transparent background. Match EXACT handmade screenprinted/cut-paper style: deep violet #59408d imperfect outline with warm cream thin rough paper border, orange wine filling lower bowl, warm cream translucent-looking bowl area actually opaque cream ink. Glass perfectly UPRIGHT, complete bowl stem and foot, centered filling 85% canvas height with small transparent margins. Portrait image. Beautiful wine glass silhouette same as reference, irregular ink texture. No bottle, no background, no colored paper fields, no shadows, no words/letters, no logo, no stickers, no stars, no other objects. Surrounding background completely transparent, never a checkerboard.
+
+Verification
+npm run build
+82 Vitest tests pass with UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN blank for the test process.
+The pre-existing OTP mock test otherwise consumes its mocked responses on Redis requests inherited from local configuration. No auth or Redis production code was changed.
+Browser checks: tests/helpers/story-preview-server.cjs + tests/helpers/story-browser-checks.cjs.
+The browser runner requires a locally installed Playwright module and Chrome (or STORY_BROWSER_CHANNEL).
+Fixture server listens only on 127.0.0.1:4173 and has no database connection; it is excluded from the production build.
+Browser results and real exported example PNGs: output/story-verification/.
+15 checks cover data-driven rendering, slow AI independence, real PNG download, all layouts/palettes, storage, races, logout, error recovery and mobile/desktop layout.
+Native Web Share calls, cancellation and failure are exercised with a simulated navigator.share; actual Instagram import and iOS/Android native share sheets still require testing on physical devices.
+Warm preview timings measured on desktop Chrome with a mobile viewport, not physical-phone benchmarks.
+

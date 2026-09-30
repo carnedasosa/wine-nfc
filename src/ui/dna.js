@@ -8,40 +8,16 @@ import {
   appendElement,
   calculateAverage,
   clearElement,
-  downloadBlob,
   getTopEmotions,
-  renderEmptyState,
-  showToast
+  renderEmptyState
 } from '../utils.js';
 
-let instaStoryBlob = null;
+import { createStoryModel } from '../story-model.js';
+import { clearStory, configureStory, openStory } from './story.js';
 let dnaGeneration = 0;
-let storyTimerId = null;
-
-function clearStoryLayout() {
-  const userName = document.getElementById('insta-user-name');
-  const dnaText = document.getElementById('insta-dna-text');
-  const bars = document.getElementById('insta-radar-bars');
-  const tags = document.getElementById('insta-tags-container');
-
-  if (userName) userName.textContent = '';
-  if (dnaText) dnaText.textContent = '';
-  if (bars) clearElement(bars);
-  if (tags) clearElement(tags);
-}
-
-function discardPendingStory() {
-  if (storyTimerId !== null) {
-    clearTimeout(storyTimerId);
-    storyTimerId = null;
-  }
-  instaStoryBlob = null;
-}
-
 export function clearDnaCache() {
   dnaGeneration += 1;
-  discardPendingStory();
-  clearStoryLayout();
+  clearStory();
 
   const content = document.getElementById('dna-content');
   const subtitle = document.getElementById('dna-subtitle');
@@ -117,8 +93,8 @@ function buildTags(assaggi, avgAcidita, avgCorpo, topEmotions) {
 export async function renderDNA() {
   const generation = ++dnaGeneration;
   const userId = state.utente.id;
-  discardPendingStory();
-  clearStoryLayout();
+  const eventId = state.eventId;
+  clearStory();
   const subtitle = document.getElementById('dna-subtitle');
   if (subtitle) subtitle.textContent = 'Basato sui tuoi assaggi di oggi';
   setShareButtonLoading(true, 'Genera il tuo Wine DNA');
@@ -140,11 +116,13 @@ export async function renderDNA() {
   document.getElementById('dna-subtitle').textContent =
     `Basato su ${assaggi.length} ${assaggi.length === 1 ? 'assaggio' : 'assaggi'} di ${state.utente.nome || 'Degustatore'}`;
 
+  configureStory(createStoryModel({ userId, eventId, name: state.utente.nome, tastings: assaggi }));
+  setShareButtonLoading(false, 'Crea la tua storia ↗');
   renderLoading(container);
 
   let result;
   try {
-    result = await API.getDNA(state.eventId);
+    result = await API.getDNA(eventId);
     if (!result || !result.dnaText || !result.stats) throw new Error('Risposta DNA vuota');
   } catch (error) {
     console.error('Errore backend DNA:', error);
@@ -170,14 +148,14 @@ export async function renderDNA() {
     };
   }
 
-  if (generation !== dnaGeneration || state.utente.id !== userId) return;
+  if (generation !== dnaGeneration || state.utente.id !== userId || state.eventId !== eventId) return;
 
   renderResult(container, String(result.dnaText), result.stats.tags, result.stats.cantine, result.stats.averages);
   const label = appendElement(container, 'p', 'empty-state-text', result.fallback
     ? (result.pending ? 'AI in elaborazione. Questo è un riepilogo descrittivo; riapri Wine DNA tra poco.' : 'Riepilogo descrittivo. L’analisi AI non è disponibile in questo momento.')
     : 'Testo generato con AI a partire dalle intensità e dalle emozioni registrate.');
   label.setAttribute('role', 'status');
-  scheduleStoryImage(generation, userId, result.stats.averages);
+
 }
 
 function setShareButtonLoading(loading, text) {
@@ -188,95 +166,6 @@ function setShareButtonLoading(loading, text) {
   button.disabled = loading;
 }
 
-function scheduleStoryImage(generation, userId, averages) {
-  setShareButtonLoading(true, 'Preparazione immagine...');
-
-  storyTimerId = setTimeout(async () => {
-    storyTimerId = null;
-    if (generation !== dnaGeneration || state.utente.id !== userId) return;
-    if (!prepareInstaLayout(averages)) return;
-
-    const layout = document.getElementById('insta-story-layout');
-    const originalScroll = window.scrollY;
-    try {
-      const canvas = await window.html2canvas(layout, {
-        scale: 1,
-        useCORS: true,
-        backgroundColor: null,
-        width: 1080,
-        height: 1920,
-        windowWidth: 1080,
-        windowHeight: 1920
-      });
-      window.scrollTo(0, originalScroll);
-      if (generation !== dnaGeneration || state.utente.id !== userId) return;
-      canvas.toBlob(blob => {
-        if (generation !== dnaGeneration || state.utente.id !== userId) return;
-        instaStoryBlob = blob;
-        setShareButtonLoading(false, '↗ Condividi il tuo Wine DNA');
-      }, 'image/png');
-    } catch (error) {
-      if (generation !== dnaGeneration || state.utente.id !== userId) return;
-      console.error('Errore pre-generazione:', error);
-      setShareButtonLoading(false, 'Immagine non disponibile');
-    }
-  }, 500);
-}
-
-function createInstaStat(container, label, value) {
-  const row = appendElement(container, 'div', 'insta-radar-row');
-  appendElement(row, 'span', 'insta-radar-label', label);
-  const track = appendElement(row, 'div', 'insta-radar-track');
-  const fill = appendElement(track, 'div', 'insta-radar-fill');
-  fill.style.width = `${rating(value) / 5 * 100}%`;
-}
-
-function prepareInstaLayout(averages) {
-  const assaggi = Array.isArray(state.assaggi) ? state.assaggi : [];
-  if (!assaggi.length) return false;
-
-  document.getElementById('insta-user-name').textContent = state.utente.nome || 'Esploratore';
-  const generatedText = document.querySelector('.dna-generated-text')?.textContent;
-  document.getElementById('insta-dna-text').textContent = generatedText || generaDNAFallback(
-    rating(averages?.acidita || 3),
-    rating(averages?.corpo || 3)
-  );
-
-  const bars = document.getElementById('insta-radar-bars');
-  clearElement(bars);
-  createInstaStat(bars, 'Acidità', averages?.acidita || 0);
-  createInstaStat(bars, 'Corpo', averages?.corpo || 0);
-  createInstaStat(bars, 'Persistenza', averages?.persistenza || 0);
-
-  const tagsContainer = document.getElementById('insta-tags-container');
-  clearElement(tagsContainer);
-  document.querySelectorAll('.dna-tag').forEach(sourceTag => {
-    appendElement(tagsContainer, 'span', 'insta-tag', sourceTag.textContent);
-  });
-
-  return true;
-}
-
-export async function shareDNA() {
-  if (!instaStoryBlob) {
-    showToast('Immagine non ancora pronta. Attendi qualche secondo...', 'error');
-    return;
-  }
-
-  const file = new File([instaStoryBlob], 'wine-dna.png', { type: 'image/png' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'Wine DNA',
-        text: 'Il mio profilo sensoriale su Vino Passport'
-      });
-    } catch (error) {
-      if (error.name !== 'AbortError') console.error('Condivisione fallita:', error);
-    }
-    return;
-  }
-
-  downloadBlob(instaStoryBlob, 'wine-dna.png');
-  showToast('Immagine scaricata! Aggiungila alle tue Storie.');
+export function shareDNA() {
+  openStory();
 }
