@@ -29,6 +29,7 @@ import {
   verifyOtp
 } from './src/ui/onboarding.js';
 import { renderHome as renderHomeView } from './src/ui/home.js';
+import { bindTutorialEvents, closeTutorial, openTutorial } from './src/ui/tutorial.js';
 import {
   openWine as openWineView,
   requestContact,
@@ -81,6 +82,7 @@ function simulateNfcTap() {
 function returnToOnboarding(message) {
   if (authTransitionInProgress) return;
   authTransitionInProgress = true;
+  closeTutorial({ restoreFocus: false });
   clearUserState();
   clearDnaCache();
   clearLeaderboardCache();
@@ -94,6 +96,7 @@ function returnToOnboarding(message) {
 }
 
 function bindStaticEvents() {
+  bindTutorialEvents();
   document.getElementById('onboarding-request-btn').addEventListener('click', requestOtp);
   document.getElementById('onboarding-verify-btn').addEventListener('click', verifyOnboardingOtp);
   document.getElementById('onboarding-reset-btn').addEventListener('click', restartOtpFlow);
@@ -131,11 +134,16 @@ function bindStaticEvents() {
   document.getElementById('settings-close-btn').addEventListener('click', closeSettings);
   document.getElementById('settings-save-btn').addEventListener('click', saveSettings);
   document.getElementById('settings-logout-btn').addEventListener('click', logout);
+  document.getElementById('settings-tutorial-btn').addEventListener('click', () => {
+    closeSettings();
+    openTutorial({ force: true });
+  });
   document.getElementById('settings-nome').addEventListener('keydown', event => {
     if (event.key === 'Enter') saveSettings();
   });
 
   document.addEventListener('keydown', event => {
+    if (document.getElementById('tutorial-dialog').open) return;
     if (event.key === 'Escape') closeSettings();
     const panel = document.getElementById('settings-panel');
     if (event.key === 'Tab' && !panel.inert) {
@@ -149,6 +157,7 @@ function bindStaticEvents() {
     returnToOnboarding('Sessione scaduta. Accedi di nuovo.');
   });
   window.addEventListener('vino:logged-out', () => {
+    closeTutorial({ restoreFocus: false });
     clearDnaCache();
     resetOnboarding();
     showScreen('onboarding');
@@ -271,6 +280,7 @@ async function initApp() {
           showToast('Accesso riuscito; gli assaggi saranno sincronizzati più tardi.', 'error');
         }
         routeInitialScreen();
+        openTutorial();
         return;
       }
     } else {
@@ -314,6 +324,7 @@ async function initApp() {
   }
 
   routeInitialScreen();
+  openTutorial();
 }
 
 initApp();

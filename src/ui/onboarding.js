@@ -11,6 +11,7 @@ import {
 import { API } from '../api.js';
 import { showScreen } from '../router.js';
 import { showToast } from '../utils.js';
+import { openTutorial } from './tutorial.js';
 
 let requestedIdentity = null;
 
@@ -136,12 +137,14 @@ export async function verifyOtp(openWine, renderHome) {
       setPendingVinoId(null);
       if (vino) {
         openWine(vino);
+        openTutorial();
         return;
       }
     }
 
     showScreen('home');
     renderHome();
+    openTutorial();
   } catch (error) {
     fields.token.select();
     showToast(error.message || 'Codice non valido o scaduto', 'error');

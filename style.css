@@ -31,6 +31,94 @@
   --shadow-pop: 4px 4px 0px #111;
 }
 
+/* ───── TUTORIAL DOPO L’ACCESSO ───── */
+body.tutorial-open { overflow: hidden; }
+.tutorial-dialog {
+  margin: auto;
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--primary);
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 var(--primary);
+  font-family: var(--font-body);
+}
+.tutorial-dialog[open] { animation: tutorial-appear 220ms ease-out; }
+.tutorial-dialog::backdrop { background: rgba(26, 15, 35, 0.5); backdrop-filter: blur(4px); }
+.tutorial-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.tutorial-eyebrow { color: var(--primary); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.tutorial-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--primary);
+  font: 500 13px var(--font-body);
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+.tutorial-skip:hover { background: var(--bg2); }
+.tutorial-skip span { font-size: 24px; }
+.tutorial-art { text-align: center; padding: 12px 0 24px; color: var(--primary); }
+.tutorial-art svg { display: block; width: 200px; height: 120px; margin: 0 auto 8px; }
+.tutorial-art-paper { fill: var(--bg2); }
+.tutorial-art-label { fill: var(--pink-pill); }
+.tutorial-sticker {
+  display: inline-block;
+  padding: 5px 16px;
+  background: var(--pink-pill);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  font-family: var(--font-marker);
+  font-size: 15px;
+  transform: rotate(-3deg);
+}
+.tutorial-count { color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.tutorial-title { font: 700 30px/1.15 var(--font-display); color: var(--primary); margin-bottom: 12px; }
+.tutorial-description { font-size: 15px; line-height: 1.6; }
+.tutorial-hint { margin-top: 16px; padding: 12px 14px; background: var(--bg2); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.tutorial-progress { display: flex; gap: 6px; justify-content: center; margin: 24px 0 16px; }
+.tutorial-progress span { width: 8px; height: 8px; border-radius: 99px; background: var(--bg3); transition: width 180ms ease, background 180ms ease; }
+.tutorial-progress .is-current { width: 28px; background: var(--primary); }
+.tutorial-progress .is-complete { background: var(--primary); }
+.tutorial-actions { display: flex; align-items: center; gap: 12px; }
+.tutorial-dialog .tutorial-actions button { margin: 0; min-height: 48px; }
+.tutorial-dialog .tutorial-actions .btn-secondary { width: auto; padding: 12px 18px; flex-shrink: 0; }
+.tutorial-dialog .tutorial-actions .btn-primary { flex: 1; }
+.tutorial-dialog :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+@keyframes tutorial-appear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 380px), (max-height: 700px) {
+  .tutorial-dialog { padding: 18px; }
+  .tutorial-art { padding: 4px 0 18px; }
+  .tutorial-art svg { width: 160px; height: 96px; }
+  .tutorial-title { font-size: 27px; }
+  .tutorial-progress { margin-top: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-dialog[open] { animation: none; }
+  .tutorial-dialog *, .tutorial-dialog .tutorial-actions button { transition: none; }
+}
+@media (max-height: 600px) {
+  .tutorial-dialog { padding: 16px; }
+  .tutorial-art { padding: 0 0 12px; }
+  .tutorial-art svg { width: 110px; height: 66px; margin-bottom: 4px; }
+  .tutorial-sticker { font-size: 13px; padding: 3px 12px; }
+  .tutorial-title { font-size: 24px; margin-bottom: 8px; }
+  .tutorial-description { font-size: 14px; line-height: 1.5; }
+  .tutorial-hint { font-size: 12px; margin-top: 12px; padding: 10px; }
+  .tutorial-progress { margin: 16px 0 12px; }
+  .tutorial-dialog .tutorial-actions button { font-size: 16px; }
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 [hidden] {

@@ -15,6 +15,7 @@ const ASSETS_TO_CACHE = [
   '/src/ui/leaderboard.js',
   '/src/ui/onboarding.js',
   '/src/ui/settings.js',
+  '/src/ui/tutorial.js',
   '/src/ui/wine.js'
 ];
 

@@ -328,10 +328,64 @@
       <p class="empty-state-text">Facoltativo. Puoi ritirare la partecipazione qui in qualsiasi momento. I voti e il passaporto restano privati.</p>
     </div>
   <div class="settings-footer">
+    <button class="btn-secondary" id="settings-tutorial-btn" type="button">Rivedi il tutorial</button>
     <button class="btn-primary" id="settings-save-btn" type="button">Salva modifiche →</button>
     <button class="btn-secondary" id="settings-logout-btn" type="button">Esci dal profilo</button>
   </div>
 </div>
+
+<!-- Guida rapida dopo l’accesso: il dialog mantiene la schermata corrente. -->
+<dialog class="tutorial-dialog" id="tutorial-dialog" aria-labelledby="tutorial-title" aria-describedby="tutorial-description">
+  <div class="tutorial-topline">
+    <span class="tutorial-eyebrow">Il tuo primo calice</span>
+    <button class="tutorial-skip" id="tutorial-skip-btn" type="button">Salta tutorial <span aria-hidden="true">×</span></button>
+  </div>
+  <div class="tutorial-art" aria-hidden="true">
+    <div data-tutorial-art>
+      <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect class="tutorial-art-paper" x="44" y="17" width="49" height="87" rx="10" transform="rotate(-8 68 60)"/>
+        <path d="M62 29h12M64 92h6M125 20h16v22l10 16v42h-36V58l10-16Z"/>
+        <path class="tutorial-art-label" d="M116 66h34v22h-34z"/>
+        <path d="M99 44q13 8 0 16M104 33q26 19 0 38M158 29h10m-5-5v10"/>
+      </svg>
+      <span class="tutorial-sticker">Tocca. Scopri. Assaggia.</span>
+    </div>
+    <div data-tutorial-art hidden>
+      <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect class="tutorial-art-paper" x="39" y="15" width="122" height="88" rx="12" transform="rotate(3 100 60)"/>
+        <path d="M58 38h84M58 59h84M58 80h84"/>
+        <circle class="tutorial-art-label" cx="82" cy="38" r="7"/><circle class="tutorial-art-label" cx="121" cy="59" r="7"/><circle class="tutorial-art-label" cx="97" cy="80" r="7"/>
+      </svg>
+      <span class="tutorial-sticker">Qui conta il tuo gusto.</span>
+    </div>
+    <div data-tutorial-art hidden>
+      <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect class="tutorial-art-paper" x="55" y="12" width="90" height="97" rx="8" transform="rotate(-6 100 60)"/>
+        <path d="M74 28v66M89 37h36M89 47h23"/>
+        <circle class="tutorial-art-label" cx="108" cy="76" r="18"/><path d="m99 76 6 6 12-13M155 33h12m-6-6v12"/>
+      </svg>
+      <span class="tutorial-sticker">Ricordi da portare a casa.</span>
+    </div>
+    <div data-tutorial-art hidden>
+      <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle class="tutorial-art-paper" cx="100" cy="60" r="48"/>
+        <path d="M82 21c0 26 36 26 36 52 0 13-18 21-18 26M118 21c0 26-36 26-36 52 0 13 18 21 18 26M86 33h28M92 45h16M87 68h26M85 80h30M94 91h12M153 26h12m-6-6v12M37 78h10m-5-5v10"/>
+      </svg>
+      <span class="tutorial-sticker">Un profilo tutto tuo.</span>
+    </div>
+  </div>
+  <div class="tutorial-content">
+    <p class="tutorial-count" id="tutorial-count"></p>
+    <h2 class="tutorial-title" id="tutorial-title" tabindex="-1"></h2>
+    <p class="tutorial-description" id="tutorial-description"></p>
+    <p class="tutorial-hint" id="tutorial-hint"></p>
+  </div>
+  <div class="tutorial-progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="tutorial-actions">
+    <button class="btn-secondary" id="tutorial-back-btn" type="button" hidden>Indietro</button>
+    <button class="btn-primary" id="tutorial-next-btn" type="button">Avanti →</button>
+  </div>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous" defer></script>
 <script src="app.js" type="module"></script>
