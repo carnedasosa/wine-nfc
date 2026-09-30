@@ -21,7 +21,7 @@ export function loadStoryResources() {
   if (!resourcesPromise) {
     resourcesPromise = Promise.all([
       loadImage('/assets/story/bottle.png'), loadImage('/assets/story/glass.png'),
-      loadImage('/assets/story/sovranaturale-source.png'),
+      loadImage('/assets/brand/sovra-naturale-white.png'),
       ...[['StoryDisplay', 'Anton-Regular.ttf'], ['StoryHand', 'Kalam-Regular.ttf']].map(async ([name, file]) => {
         const face = new FontFace(name, `url(/assets/fonts/${file})`);
         let timeout;
@@ -160,13 +160,16 @@ export async function renderStoryCanvas(model, preferences) {
   texture(ctx);
   decorations(ctx, theme.decoration, seed);
 
-  // Source screenshot is preserved verbatim. Crop only the empty surrounding area.
-  // Its lettering stays below source resolution, on the sampled original purple.
-  ctx.fillStyle = '#5E4998'; ctx.beginPath(); ctx.ellipse(540, 280, 188, 95, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.drawImage(assets.logo, 19, 76, 350, 144, 396, 221, 288, 118);
+  // White-on-purple brand signature for the exported story.
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(540, 280, 216, 104, 0, 0, Math.PI * 2); ctx.fill();
+  const logoScale = Math.min(344 / assets.logo.naturalWidth, 132 / assets.logo.naturalHeight);
+  const logoWidth = assets.logo.naturalWidth * logoScale;
+  const logoHeight = assets.logo.naturalHeight * logoScale;
+  ctx.drawImage(assets.logo, 540 - logoWidth / 2, 280 - logoHeight / 2, logoWidth, logoHeight);
   ctx.fillStyle = INK; ctx.textAlign = 'center';
   fittedText(ctx, 'Il mio', 540, 494, 850, 106, 'StoryDisplay');
   fittedText(ctx, 'Wine DNA', 540, 624, 890, 138, 'StoryDisplay');
+  fittedText(ctx, 'scoperto a Sovra Naturale', 540, 662, 850, 30, 'StoryHand');
   if (preferences.showName && model.name) fittedText(ctx, model.name, 540, 716, 810, 65, 'StoryHand', 34);
   else { ctx.font = '30px StoryHand'; ctx.fillText('Un calice, un ricordo.', 540, 701); }
 

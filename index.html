@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0d0d0d">
+<meta name="theme-color" content="#59408d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Vino Passport</title>
+<title>Passaporto del vino · Sovra Naturale</title>
+<meta name="description" content="Il tuo passaporto del vino, un progetto di Sovra Naturale. Custodisci ogni assaggio e scopri il tuo Wine DNA.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=4">
@@ -72,16 +73,12 @@
 ══════════════════════════════════ -->
 <div class="screen" id="screen-onboarding">
   <div class="onboarding-inner">
-    <div class="logo-mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-        <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4"/>
-        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-      </svg>
+    <div class="event-brand event-brand-welcome">
+      <img src="/assets/brand/sovra-naturale-purple-shadow.png" alt="Sovra Naturale" width="240" height="90" fetchpriority="high">
     </div>
-    <div class="onboarding-eyebrow">Sovranaturale 2026</div>
+    <p class="onboarding-eyebrow">Un progetto di Sovra Naturale</p>
     <h1 class="onboarding-title">Il tuo <em>Passaporto</em> del vino</h1>
-    <p class="onboarding-sub">Tocca le bottiglie, costruisci il tuo profilo sensoriale, porta a casa il ricordo di ogni assaggio.</p>
+    <p class="onboarding-sub">Scopri i vini, custodisci ogni assaggio e trova il tuo Wine DNA.</p>
 
     <div class="input-group">
       <label class="input-label" for="input-nome">Nome</label>
@@ -107,7 +104,7 @@
 
     <div class="fiera-badge">
       <div class="fiera-dot"></div>
-      <span class="fiera-name">Sovranaturale · Bari, 25 ottobre 2026</span>
+      <span class="fiera-name">Bari · 25 ottobre 2026</span>
     </div>
   </div>
 </div>
@@ -117,7 +114,12 @@
 ══════════════════════════════════ -->
 <div class="screen" id="screen-home">
   <div class="top-bar">
-    <div class="top-bar-logo">Vino <em>Passport</em></div>
+    <div class="passport-brand">
+      <div class="event-brand event-brand-compact">
+        <img src="/assets/brand/sovra-naturale-purple-shadow.png" alt="Sovra Naturale" width="100" height="38">
+      </div>
+      <div class="top-bar-logo">Passaporto</div>
+    </div>
     <div class="top-bar-right">
       <div class="tap-hint">
         <div class="tap-hint-dot"></div>
@@ -275,14 +277,14 @@
 <!-- Storia Sovranaturale: anteprima e PNG condividono lo stesso canvas. -->
 <dialog class="story-dialog" id="story-dialog" aria-labelledby="story-title" aria-describedby="story-intro">
   <header class="story-heading">
-    <div><p class="story-eyebrow">Sovranaturale · Wine DNA</p><h2 id="story-title">La tua storia, a modo tuo.</h2></div>
+    <div><p class="story-eyebrow">Sovra Naturale · Wine DNA</p><h2 id="story-title">La tua storia, a modo tuo.</h2></div>
     <button type="button" id="story-close-btn" class="story-close" aria-label="Chiudi la storia" autofocus>×</button>
   </header>
   <p class="story-intro" id="story-intro">I tuoi assaggi diventano un piccolo poster da portare con te.</p>
   <div class="story-workspace">
     <div class="story-art-column">
       <div class="story-preview-wrap" id="story-preview-wrap" aria-busy="true">
-        <canvas id="story-preview" width="1080" height="1920" role="img" hidden>Anteprima della tua storia Sovranaturale.</canvas>
+        <canvas id="story-preview" width="1080" height="1920" role="img" hidden>Anteprima della tua storia Sovra Naturale.</canvas>
         <span class="story-preview-placeholder" aria-hidden="true">Un calice,<br>un ricordo.</span>
       </div>
       <div class="story-variants" role="group" aria-label="Scegli la composizione">
