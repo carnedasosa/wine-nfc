@@ -17,7 +17,8 @@ function hashDirectory(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a,b) => a.name.localeCompare(b.name))) {
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) hashDirectory(target);
-    else if (entry.name !== 'service-worker.js') hash.update(path.relative(output, target).replaceAll('\\', '/')).update(fs.readFileSync(target));
+    // Anche le regole del worker fanno parte della versione, prima di sostituire il placeholder.
+    else hash.update(path.relative(output, target).replaceAll('\\', '/')).update(fs.readFileSync(target));
   }
 }
 hashDirectory(output);

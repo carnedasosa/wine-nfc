@@ -1,5 +1,7 @@
 # Analisi Tecnica: Progetto Vino Passport
 
+> Documento storico precedente agli interventi di qualità. Per architettura e procedure correnti usare il [README](README.md) e il [piano qualità](docs/PIANO_QUALITA_SOFTWARE.md). Le valutazioni seguenti conservano il contesto originario e non attestano il codice attuale.
+
 Questo documento fornisce una mappa chiara e dettagliata dell'architettura e della base di codice del progetto "Vino Passport". È pensato per permettere a un assistente AI o a un nuovo sviluppatore di navigare il progetto in modo mirato, riducendo la necessità di scansionare l'intero repository.
 
 ## 1. Overview del progetto

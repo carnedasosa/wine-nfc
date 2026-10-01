@@ -36,6 +36,16 @@ function dependencies(overrides = {}) {
 }
 
 describe('middleware auth M1', () => {
+  it('rifiuta prima del dominio una bozza di A se il cookie identifica B', async () => {
+    const handler = vi.fn();
+    const res = responseDouble();
+    await withAuth(handler, dependencies())({ method: 'GET', headers: {
+      cookie: 'vino_access=verified-access', 'x-vino-user': 'previous-account'
+    } }, res);
+    expect(res.statusCode).toBe(409);
+    expect(res.payload.code).toBe('SESSION_CHANGED');
+    expect(handler).not.toHaveBeenCalled();
+  });
   afterEach(() => vi.unstubAllEnvs());
 
   it('ignora completamente Authorization Bearer e rifiuta il JWT legacy', async () => {

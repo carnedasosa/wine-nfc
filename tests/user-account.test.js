@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const {
   AccountLinkError,
@@ -40,7 +40,9 @@ function memoryDb(initialUsers = []) {
     },
     async updateMany({ where, data }) {
       const user = users.find(candidate =>
-        candidate.id === where.id && candidate.authSubject === where.authSubject
+        candidate.id === where.id
+        && (where.authSubject === undefined || candidate.authSubject === where.authSubject)
+        && (!where.OR || where.OR.some(option => candidate.nome === option.nome))
       );
       if (!user) return { count: 0 };
       Object.assign(user, data);
@@ -70,6 +72,40 @@ function memoryDb(initialUsers = []) {
 }
 
 describe('linking identità Supabase', () => {
+  it('il Magic Link conserva il nome di un account già collegato', async () => {
+    const db = memoryDb([{ id: 'user', authSubject: SUBJECT, nome: 'Nome scelto', email: 'ada@example.com' }]);
+    const result = await linkVerifiedIdentity({ id: SUBJECT, email: 'ada@example.com' }, 'ada', db, { preserveExistingName: true });
+    expect(result.nome).toBe('Nome scelto');
+  });
+
+  it('il Magic Link conserva il nome legacy e usa il fallback per nomi assenti', async () => {
+    for (const original of ['Nome legacy', null, '']) {
+      const db = memoryDb([{ id: 'legacy', nome: original, email: 'ada@example.com' }]);
+      const result = await linkVerifiedIdentity({ id: SUBJECT, email: 'ada@example.com' }, 'ada', db, { preserveExistingName: true });
+      expect(result.nome).toBe(original || 'ada');
+      expect(db.users[0].authSubject).toBe(SUBJECT);
+    }
+  });
+
+  it('il fallback non sovrascrive un nome impostato dopo la lettura', async () => {
+    const db = memoryDb([{ id: 'user', authSubject: SUBJECT, nome: null, email: 'ada@example.com' }]);
+    const find = db.user.findUnique;
+    vi.spyOn(db.user, 'findUnique').mockImplementationOnce(async args => {
+      const snapshot = { ...await find(args) };
+      db.users[0].nome = 'Modifica concorrente';
+      return snapshot;
+    });
+    const result = await linkVerifiedIdentity({ id: SUBJECT, email: 'ada@example.com' }, 'ada', db, { preserveExistingName: true });
+    expect(result.nome).toBe('Modifica concorrente');
+  });
+
+  it('preserva il nome anche nel recupero di una creazione concorrente', async () => {
+    const db = memoryDb([{ id: 'user', authSubject: SUBJECT, nome: 'Nome concorrente', email: 'ada@example.com' }]);
+    vi.spyOn(db, '$transaction').mockRejectedValueOnce(Object.assign(new Error('unique'), { code: 'P2002' }));
+    const result = await linkVerifiedIdentity({ id: SUBJECT, email: 'ada@example.com' }, 'ada', db, { preserveExistingName: true });
+    expect(result.nome).toBe('Nome concorrente');
+  });
+
   it('collega una sola corrispondenza legacy case-insensitive dopo verifica', async () => {
     const db = memoryDb([{
       id: '22222222-2222-4222-8222-222222222222',

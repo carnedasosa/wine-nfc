@@ -55,7 +55,8 @@ async function main() {
   const failed = results.filter(r=>!r).length;
   const report = { executedAt: new Date().toISOString(), arrivals, intervalMs, flowsFailed: failed, routes, excludes: ['Invio e ricezione OTP', 'Latenza e rendering su telefoni reali'] };
   console.log(JSON.stringify(report,null,2));
-  fs.writeFileSync('docs/audit-2026-09-29/staging-load-result.json',JSON.stringify(report,null,2));
+  fs.mkdirSync('output/quality', { recursive: true });
+  fs.writeFileSync('output/quality/staging-load-result.json',JSON.stringify(report,null,2));
   if (failed || Object.values(routes).some(r=>r.p95Ms>3000||r.errors)) process.exitCode=1;
 }
 main().catch(error=>{ console.error(error.name); process.exitCode=1; });

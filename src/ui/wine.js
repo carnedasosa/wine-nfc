@@ -2,15 +2,36 @@
 // UI / WINE — scheda vino, slider, emozioni, salvataggio
 // ═══════════════════════════════════════════════════
 
-import { state, viniDB, loadState } from '../state.js';
+import { state, loadState, captureSession, isCurrentSession } from '../state.js';
 import { API } from '../api.js';
 import { showScreen } from '../router.js';
 import { safeHexColor, showToast } from '../utils.js';
 import { clearDnaCache } from './dna.js';
 import { clearLeaderboardCache } from './leaderboard.js';
 
-let saving = false;
-let pendingRequest = null;
+let draft = null;
+
+function currentDraft(candidate) {
+  return draft === candidate && isCurrentSession(candidate.context)
+    && state.vinoCorrente?.id === candidate.vino.id;
+}
+
+function setDraftStatus(candidate, status, message = '') {
+  candidate.status = status;
+  if (!currentDraft(candidate)) return;
+  const editable = status === 'ready';
+  document.getElementById('save-wine-btn').disabled = !editable;
+  document.querySelectorAll('[data-rating], [data-emotion]').forEach(control => { control.disabled = !editable; });
+  document.getElementById('wine-status').textContent = message;
+  const retry = document.getElementById('wine-retry-btn');
+  retry.hidden = !['error', 'conflict'].includes(status);
+  retry.textContent = status === 'conflict' ? 'Carica il voto aggiornato' : 'Riprova il caricamento';
+}
+
+export async function retryWineLoad() {
+  if (!draft || !currentDraft(draft) || !['error', 'conflict'].includes(draft.status)) return;
+  return openWine(draft.vino, { reload: true });
+}
 
 const EMOTIONS = new Set(['Sorpresa', 'Nostalgia', 'Energia', 'Pace', 'Complessità', 'Radici']);
 
@@ -18,30 +39,16 @@ const EMOTIONS = new Set(['Sorpresa', 'Nostalgia', 'Energia', 'Pace', 'Complessi
  * Apre la scheda dettaglio di un vino.
  * @param {object} vino
  */
-export function openWine(vino) {
+export async function openWine(vino, { reload = false } = {}) {
   if (!vino || !vino.id) {
     showToast('Vino non valido', 'error');
     return;
   }
   state.vinoCorrente = vino;
-  const previous = state.assaggi.find(item => item.vino.id === vino.id);
-  state.emozioneSelezionata = previous?.emozione || null;
-
-
-  // Reset sliders
-  ['acidita', 'corpo', 'persistenza'].forEach(s => {
-    const slider = document.getElementById('slider-' + s);
-    slider.value = previous?.[s] || 3;
-    updateSlider(s, slider);
-  });
-
-  // Reset emozioni
-  document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
-  document.querySelectorAll('[data-emotion]').forEach(c => {
-    const selected = c.dataset.emotion === state.emozioneSelezionata;
-    c.classList.toggle('selected', selected);
-    c.setAttribute('aria-pressed', String(selected));
-  });
+  const candidate = { vino, context: captureSession(), status: 'loading', baseVersion: null, pendingRequest: null };
+  draft = candidate;
+  state.emozioneSelezionata = null;
+  setDraftStatus(candidate, 'loading', 'Caricamento del tuo voto…');
 
   // Colore hero
   const color = safeHexColor(vino.colore);
@@ -55,6 +62,30 @@ export function openWine(vino) {
   document.getElementById('wine-desc').textContent = vino.desc;
 
   showScreen('wine');
+  try {
+    if (reload || !state.tastingsLoaded) {
+      const applied = await loadState(API.getTastings);
+      if (!currentDraft(candidate)) return;
+      if (!applied || !state.tastingsLoaded) throw new Error('Riprova a caricare gli assaggi.');
+    }
+    if (!currentDraft(candidate)) return;
+    const previous = state.assaggi.find(item => item.vino.id === vino.id);
+    candidate.baseVersion = previous?.version || 0;
+    state.emozioneSelezionata = previous?.emozione || null;
+    ['acidita', 'corpo', 'persistenza'].forEach(s => {
+      const slider = document.getElementById('slider-' + s);
+      slider.value = String(previous?.[s] || 3);
+      updateSlider(s, slider);
+    });
+    document.querySelectorAll('[data-emotion]').forEach(control => {
+      const selected = control.dataset.emotion === state.emozioneSelezionata;
+      control.classList.toggle('selected', selected);
+      control.setAttribute('aria-pressed', String(selected));
+    });
+    setDraftStatus(candidate, 'ready');
+  } catch {
+    if (currentDraft(candidate)) setDraftStatus(candidate, 'error', 'Impossibile caricare il tuo voto. Riprova prima di modificarlo.');
+  }
 }
 
 export function updateSlider(tipo, el) {
@@ -71,7 +102,7 @@ export function updateSlider(tipo, el) {
 }
 
 export function selectEmo(el, emo) {
-  if (!EMOTIONS.has(emo)) return;
+  if (!EMOTIONS.has(emo) || !draft || !currentDraft(draft) || draft.status !== 'ready') return;
   document.querySelectorAll('.emo-chip').forEach(c => c.classList.remove('selected'));
   document.querySelectorAll('[data-emotion]').forEach(c => c.setAttribute('aria-pressed', String(c === el)));
   el.classList.add('selected');
@@ -83,16 +114,15 @@ export function selectEmo(el, emo) {
  * @param {() => void} renderHome
  */
 export async function saveWine(renderHome) {
-  if (saving) return;
+  const candidate = draft;
+  if (!candidate || !currentDraft(candidate) || candidate.status !== 'ready') return;
   if (!state.utente || !state.utente.id) {
     return showToast('Sessione non valida, utente mancante', 'error');
   }
 
-  const vino = state.vinoCorrente;
+  const vino = candidate.vino;
   if (!vino?.id) return showToast('Seleziona un vino valido', 'error');
   if (!navigator.onLine) return showToast('Connessione assente: resta su questa scheda e riprova quando torna la rete.', 'error');
-  const btn = document.querySelector('.wine-cta .btn-save');
-  if (btn) btn.disabled = true;
 
   const acidita = parseInt(document.getElementById('slider-acidita').value);
   const corpo = parseInt(document.getElementById('slider-corpo').value);
@@ -100,17 +130,13 @@ export async function saveWine(renderHome) {
   const emozione = state.emozioneSelezionata;
 
   if (!emozione) {
-    if (btn) btn.disabled = false;
     showToast('Seleziona un’emozione prima di salvare', 'error');
     return;
   }
 
-  saving = true;
-  const owner = state.utente.id;
-  const eventId = state.eventId;
+  setDraftStatus(candidate, 'saving', 'Salvataggio in corso…');
+  const eventId = candidate.context.eventId;
   try {
-    if (!state.tastingsLoaded) await loadState(API.getTastings);
-    if (owner !== state.utente.id || eventId !== state.eventId) return;
     const payload = {
       eventId,
       wineId: vino.id,
@@ -118,62 +144,45 @@ export async function saveWine(renderHome) {
       corpo,
       persistenza,
       emozione,
-      baseVersion: state.assaggi.find(a => a.vino.id === vino.id)?.version || 0
+      baseVersion: candidate.baseVersion
     };
-    const signature = JSON.stringify({ owner, ...payload });
-    if (pendingRequest?.signature !== signature) {
-      pendingRequest = { signature, payload: { ...payload, idempotencyKey: crypto.randomUUID() } };
+    const signature = JSON.stringify(payload);
+    if (candidate.pendingRequest?.signature !== signature) {
+      candidate.pendingRequest = { signature, payload: { ...payload, idempotencyKey: crypto.randomUUID() } };
     }
-    const saved = await API.saveTasting(pendingRequest.payload);
-    pendingRequest = null;
-    if (owner !== state.utente.id || eventId !== state.eventId) return;
-    showToast(`${vino.nome} salvato nel passaporto ✓`);
+    const saved = await API.saveTasting(candidate.pendingRequest.payload);
+    if (!isCurrentSession(candidate.context)) return;
+    candidate.pendingRequest = null;
     const assaggio = { vino, acidita: saved.acidita, corpo: saved.corpo, persistenza: saved.persistenza, emozione: saved.emozione, version: saved.version, timestamp: new Date(saved.createdAt) };
     const existing = state.assaggi.findIndex(a => a.vino.id === vino.id);
     if (existing >= 0) {
-      state.assaggi[existing] = assaggio;
+      if (state.assaggi[existing].version <= assaggio.version) state.assaggi[existing] = assaggio;
     } else {
       state.assaggi.push(assaggio);
     }
     
     clearDnaCache();
     clearLeaderboardCache();
+    // Un replay restituisce la risposta storica della richiesta, non il voto più recente.
+    if (saved.replayed) {
+      try { await loadState(API.getTastings); }
+      catch { if (isCurrentSession(candidate.context)) state.tastingsLoaded = false; }
+    }
+    if (!currentDraft(candidate)) return;
+    setDraftStatus(candidate, 'saved', 'Voto salvato.');
+    showToast(`${vino.nome} salvato nel passaporto ✓`);
     showScreen('home');
     renderHome();
   } catch (e) {
+    if (!currentDraft(candidate)) return;
     if (e.status === 409) {
-      pendingRequest = null;
-      await loadState(API.getTastings).catch(() => { state.tastingsLoaded = false; });
+      candidate.pendingRequest = null;
+      state.tastingsLoaded = false;
+      setDraftStatus(candidate, 'conflict', 'Il voto o la disponibilità dell’evento sono cambiati. Carica il voto aggiornato prima di modificarlo: i valori qui inseriti saranno sostituiti.');
+      return;
     }
-    console.error('[saveWine] error:', e);
     showToast(e.message || 'Errore nel salvataggio. Riprova.', 'error');
   } finally {
-    saving = false;
-    if (btn) btn.disabled = false;
+    if (currentDraft(candidate) && candidate.status === 'saving') setDraftStatus(candidate, 'ready', 'Salvataggio non confermato. Puoi riprovare.');
   }
-}
-
-/**
- * Simula un tap NFC aprendo un vino non ancora assaggiato.
- */
-export function simulateNfcTap(openWineFn) {
-  const ripple = document.getElementById('nfc-ripple');
-  ripple.classList.remove('animate');
-  void ripple.offsetWidth;
-  ripple.classList.add('animate');
-
-  const assaggiatiIds = state.assaggi.map(a => a.vino.id);
-  const nonAssaggiati = viniDB.filter(v => !assaggiatiIds.includes(v.id));
-
-  if (nonAssaggiati.length === 0) {
-    showToast('Hai assaggiato tutti i vini della fiera! 🎉');
-    return;
-  }
-
-  const vino = nonAssaggiati[Math.floor(Math.random() * nonAssaggiati.length)];
-  openWineFn(vino);
-}
-
-export function requestContact() {
-  showToast('I contatti delle cantine non sono ancora disponibili.');
 }

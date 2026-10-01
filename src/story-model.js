@@ -1,3 +1,5 @@
+import { calculateAverage } from './domain/sensory.mjs';
+
 // Dati e preferenze della storia: nessuna chiamata AI, nessun dato personale salvato.
 export const STORY_THEMES = Object.freeze([
   { id: 'energia', label: 'Energia', colors: ['#BEA3DB', '#F69555'], sticker: '#F5ADCA', decoration: 'rays' },
@@ -24,9 +26,9 @@ export function createStoryModel({ userId, eventId, name, tastings = [] }) {
   const theme = STORY_THEMES.find(item => item.label === emotions[0]) || STORY_THEMES[0];
   const averages = {};
   for (const field of ['acidita', 'corpo', 'persistenza']) {
-    const values = rows.map(row => Number(row[field])).filter(value => Number.isFinite(value) && value >= 1 && value <= 5);
-    averages[field] = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length * 10) / 10 : null;
+    averages[field] = calculateAverage(rows, field);
   }
+  // eslint-disable-next-line no-control-regex -- Rimuove intenzionalmente caratteri di controllo dal nome.
   const nameText = typeof name === 'string' ? name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 60) : '';
   return {
     userId, eventId, name: nameText, count: rows.length, emotions, averages,

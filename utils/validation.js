@@ -26,6 +26,7 @@ const CATALOG_LIMITS = Object.freeze({
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_LOCAL_PATTERN = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/i;
+// eslint-disable-next-line no-control-regex -- Il validatore deve riconoscere questi caratteri per rifiutarli.
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f]/u;
 
 class ValidationError extends Error {

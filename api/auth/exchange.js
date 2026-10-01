@@ -56,14 +56,13 @@ module.exports = async function exchangeHandler(req, res) {
     return sendJsonError(res, 500, 'INTERNAL_ERROR', 'Errore interno del server');
   }
 
-  // Il Magic Link non trasmette il nome scelto dall'utente. Usiamo la parte
-  // locale dell'email come nome di fallback, che l'utente potrà aggiornare
-  // in seguito nelle impostazioni.
+  // Il Magic Link non trasmette un nuovo nome: il fallback si applica soltanto
+  // ai profili nuovi o privi di nome, senza riscrivere una scelta precedente.
   const fallbackName = identity.email.split('@')[0].slice(0, 60) || 'Utente';
 
   let user;
   try {
-    user = await linkVerifiedIdentity(identity, fallbackName);
+    user = await linkVerifiedIdentity(identity, fallbackName, undefined, { preserveExistingName: true });
   } catch (error) {
     if (error instanceof AccountLinkError) {
       return sendJsonError(

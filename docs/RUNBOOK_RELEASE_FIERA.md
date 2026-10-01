@@ -1,13 +1,13 @@
 # Sovranaturale — procedura di rilascio e collaudo
 
-Questa procedura completa lo [stato della release](STATO_RELEASE_SOVRANATURALE.md). Il database già configurato è stato aggiornato alle migrazioni m3–m5; non è stato convertito in un ambiente di produzione né ripulito dai dati dimostrativi.
+Questa procedura completa il [piano qualità corrente](PIANO_QUALITA_SOFTWARE.md). Lo [stato della release di settembre](STATO_RELEASE_SOVRANATURALE.md) è una prova storica: verificare ambiente, migrazioni applicate e dati evento prima di ogni nuovo rilascio.
 
 ## Comandi disponibili
 
 ```text
 npm ci
 npm run prisma:validate
-npm test
+npm run check
 npm run vercel-build
 npm run release:check
 npm run dev
@@ -15,7 +15,7 @@ npm run dev
 
 `release:check` fallisce finché mancano variabili di produzione o la privacy è in bozza. È un blocco voluto. La build Vercel di produzione esegue automaticamente questo controllo; quella locale e la preview possono essere preparate prima. `npm run dev` costruisce i file pubblici e ascolta solo su `127.0.0.1:3000`. Per una prova LAN autorizzata impostare `HOST=0.0.0.0` e usare la rete di collaudo. Il vecchio processo di sviluppo eventualmente già aperto va riavviato dall’operatore per usare il nuovo codice.
 
-`npm run test:db` crea uno schema PostgreSQL temporaneo con nome casuale `wine_check_*`, installa le migrazioni, verifica salvataggi/AI/classifica e rimuove quello stesso schema. Non esegue reset dello schema applicativo. Richiede una connessione con permesso di creare schemi. L’opzione interna che evita i lock advisory vale solo per quel namespace esclusivo, **non va copiata nel deploy reale**. L’ultima esecuzione produce `docs/audit-2026-09-29/remediation-db-tests.json`.
+`npm run test:db` richiede `TEST_DATABASE_URL` esplicita, PostgreSQL su loopback e un database dedicato con nome che termina in `_test`; non legge `.env`. Crea uno schema temporaneo `wine_check_*`, applica le migrazioni, verifica salvataggi/AI/classifica/Magic Link e rimuove quello stesso schema. Richiede permesso di creare schemi. Produce `output/quality/db-tests.json`, senza modificare i report storici. La CI fornisce PostgreSQL 16; il [README](../README.md#database) contiene il comando PowerShell locale.
 
 ## 1. Ambiente pubblico di collaudo
 
@@ -24,7 +24,7 @@ npm run dev
 - Impostare `DATABASE_URL` con pooler e `DIRECT_URL` adatta alle migrazioni del progetto di staging. Applicare le migrazioni con `prisma migrate deploy`, senza `reset` o `db push --accept-data-loss`.
 - Caricare evento di collaudo, almeno due vini e relative righe `EventWine`. Stato esatto `active`, periodo comprendente l’orario della prova; `ACTIVE_EVENT_ID` uguale all’ID dell’evento.
 - Configurare origine HTTPS in `APP_ORIGIN`. Catalogo di produzione e API rifiutano link a un evento diverso da quello configurato.
-- Verificare il limite funzioni del piano: escludendo il mock, attualmente ci sono 13 endpoint distribuibili. La prova locale non certifica il numero di bundle finali di Vercel.
+- Verificare limite e numero di bundle finali delle funzioni, inclusa `/api/health`, ora non esclusa da `.vercelignore`. Verificare che il bundle DNA contenga `src/domain/sensory.mjs` e il client Prisma generato. La build statica locale non certifica il packaging Vercel.
 
 ## 2. Email e accesso
 
