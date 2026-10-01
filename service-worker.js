@@ -10,6 +10,8 @@ const ASSETS_TO_CACHE = [
   '/src/router.js',
   '/src/state.js',
   '/src/utils.js',
+  '/src/domain/sensory.mjs',
+  '/src/session-sync.js',
   '/src/ui/dna.js',
   '/src/story-model.js',
   '/src/story-renderer.js',

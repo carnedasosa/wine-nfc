@@ -1,9 +1,10 @@
-import { state } from '../state.js';
+import { state, captureSession, isCurrentSession } from '../state.js';
 import { downloadBlob, showToast } from '../utils.js';
 import { STORY_THEMES, normalizeStoryPreferences, readStoryPreferences, resolveStoryTheme, storyPreferenceKey, writeStoryPreferences } from '../story-model.js';
 import { loadStoryResources, renderStoryCanvas, storyCanvasBlob } from '../story-renderer.js';
 
 let model = null;
+let modelContext = null;
 let preferences = null;
 let revision = 0;
 let readyFile = null;
@@ -15,7 +16,7 @@ const element = id => document.getElementById(id);
 const dialog = () => element('story-dialog');
 
 function storage() { try { return localStorage; } catch { return undefined; } }
-function isCurrent(snapshot) { return model === snapshot && state.utente.id === snapshot.userId && state.eventId === snapshot.eventId; }
+function isCurrent(snapshot) { return model === snapshot && modelContext && isCurrentSession(modelContext) && state.utente.id === snapshot.userId && state.eventId === snapshot.eventId; }
 function setBusy(busy) {
   element('story-preview-wrap').setAttribute('aria-busy', String(busy));
   element('story-share-btn').disabled = busy || sharing || !readyFile;
@@ -28,6 +29,7 @@ export function configureStory(nextModel) {
   clearStory();
   if (!nextModel.userId || !nextModel.count) return;
   model = nextModel;
+  modelContext = captureSession();
   const remembered = memoryPreferences.get(storyPreferenceKey(model));
   preferences = remembered ? normalizeStoryPreferences(remembered, model.seed) : readStoryPreferences(model, storage());
   // Cache public assets while the analysis is running. Failures are retried on opening.
@@ -37,6 +39,7 @@ export function configureStory(nextModel) {
 export function clearStory() {
   revision++;
   model = null; preferences = null; readyFile = null; sharing = false;
+  modelContext = null;
   if (!dialog()) return;
   closeStory({ restoreFocus: false });
   const canvas = element('story-preview');

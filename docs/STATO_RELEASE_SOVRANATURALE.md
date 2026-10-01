@@ -1,5 +1,7 @@
 # Sovranaturale — stato dopo le correzioni
 
+> Snapshot storico del 29 settembre. Per le modifiche successive e le verifiche correnti consultare il [piano qualità](PIANO_QUALITA_SOFTWARE.md). Le prove di seguito non sono state ripetute automaticamente.
+
 Aggiornamento del 29 settembre 2026, successivo al report iniziale. Fiera del 25 ottobre 2026 a Bari, 1.500–2.000 visitatori, picco atteso 600 ingressi/ora. Responsabile operativo: tu, come confermato. **La prima release comprende classifica e Wine DNA con AI**, come richiesto.
 
 ## La risposta in pratica

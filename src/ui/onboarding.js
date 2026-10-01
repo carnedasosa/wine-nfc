@@ -4,6 +4,8 @@
 
 import {
   loadState,
+  captureSession,
+  isCurrentSession,
   pendingVinoId,
   setAuthenticatedUser,
   setPendingVinoId
@@ -14,6 +16,7 @@ import { showToast } from '../utils.js';
 import { openTutorial } from './tutorial.js';
 
 let requestedIdentity = null;
+let flowGeneration = 0;
 
 function getFields() {
   return {
@@ -51,12 +54,17 @@ function setOtpStep(active) {
 }
 
 export function resetOnboarding() {
+  flowGeneration += 1;
   requestedIdentity = null;
   const fields = getFields();
   fields.nome.value = '';
   fields.email.value = '';
   fields.token.value = '';
   fields.hint.textContent = '';
+  fields.requestButton.disabled = false;
+  fields.verifyButton.disabled = false;
+  fields.requestButton.textContent = 'Invia il codice →';
+  fields.verifyButton.textContent = 'Verifica e inizia →';
   setOtpStep(false);
 }
 
@@ -73,20 +81,27 @@ export async function requestOtp() {
   }
 
   const originalText = fields.requestButton.textContent;
+  const generation = ++flowGeneration;
+  const context = captureSession();
+  const current = () => generation === flowGeneration && isCurrentSession(context);
   fields.requestButton.textContent = 'Invio in corso...';
   fields.requestButton.disabled = true;
   try {
     await API.requestOtp(email);
+    if (!current()) return;
     requestedIdentity = { nome, email };
     fields.email.value = email;
     fields.hint.textContent = `Inserisci il codice ricevuto all'indirizzo ${email}.`;
     setOtpStep(true);
     showToast('Se l’indirizzo è valido, il codice è stato inviato.');
   } catch (error) {
+    if (!current()) return;
     showToast(error.message || 'Invio del codice non riuscito. Riprova.', 'error');
   } finally {
-    fields.requestButton.textContent = originalText;
-    fields.requestButton.disabled = false;
+    if (current()) {
+      fields.requestButton.textContent = originalText;
+      fields.requestButton.disabled = false;
+    }
   }
 }
 
@@ -107,6 +122,9 @@ export async function verifyOtp(openWine, renderHome) {
   }
 
   const originalText = fields.verifyButton.textContent;
+  const generation = flowGeneration;
+  let context = captureSession();
+  const current = () => generation === flowGeneration && isCurrentSession(context);
   fields.verifyButton.textContent = 'Verifica in corso...';
   fields.verifyButton.disabled = true;
   try {
@@ -116,23 +134,29 @@ export async function verifyOtp(openWine, renderHome) {
       token
     );
     const user = result?.user;
+    if (!current()) return;
 
     if (!user?.id) throw new Error('Sessione non inizializzata');
 
     setAuthenticatedUser(user);
+    context = captureSession();
     try {
       await loadState(API.getTastings);
     } catch (error) {
+      if (!current()) return;
       if (error.status === 401) throw error;
       console.error('Sincronizzazione assaggi non riuscita:', error);
       showToast('Accesso riuscito; gli assaggi saranno sincronizzati più tardi.', 'error');
     }
+
+    if (!current()) return;
 
     requestedIdentity = null;
     fields.token.value = '';
 
     if (pendingVinoId) {
       const { viniDB } = await import('../state.js');
+      if (!current()) return;
       const vino = viniDB.find(item => item.id === pendingVinoId);
       setPendingVinoId(null);
       if (vino) {
@@ -146,15 +170,21 @@ export async function verifyOtp(openWine, renderHome) {
     renderHome();
     openTutorial();
   } catch (error) {
+    if (!current()) return;
     fields.token.select();
     showToast(error.message || 'Codice non valido o scaduto', 'error');
   } finally {
-    fields.verifyButton.textContent = originalText;
-    fields.verifyButton.disabled = false;
+    if (current()) {
+      fields.verifyButton.textContent = originalText;
+      fields.verifyButton.disabled = false;
+    }
   }
 }
 
 export function restartOtpFlow() {
+  // Non abbandonare uno scambio in corso che può emettere cookie di sessione.
+  if (getFields().verifyButton.disabled) return;
+  flowGeneration += 1;
   requestedIdentity = null;
   const fields = getFields();
   fields.token.value = '';

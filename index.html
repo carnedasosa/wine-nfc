@@ -17,7 +17,6 @@
 <!-- Noise texture per effetto tattile organico -->
 <div class="noise-overlay"></div>
 <!-- NFC Ripple effect -->
-<div class="nfc-ripple" id="nfc-ripple"></div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -136,10 +135,6 @@
     <!-- Popolato da JS -->
   </div>
 
-  <button class="demo-nfc-btn" id="simulate-nfc-btn" type="button" hidden>
-    <span>⬡</span>
-    Simula tap NFC
-  </button>
 
   <nav class="bottom-nav">
     <button class="nav-tab active" type="button" data-tab="passport">
@@ -171,6 +166,8 @@
 
   <div class="wine-detail-content">
     <p class="wine-desc" id="wine-desc">Descrizione del vino</p>
+    <p id="wine-status" role="status" aria-live="polite"></p>
+    <button class="btn-secondary" id="wine-retry-btn" type="button" hidden>Riprova il caricamento</button>
 
     <div class="rating-section">
       <div class="rating-section-title">La tua impressione</div>
@@ -217,9 +214,6 @@
   </div>
 
   <div class="wine-cta">
-    <button class="btn-secondary" id="request-contact-btn" type="button" hidden>
-      📬 Contattami
-    </button>
     <button class="btn-save" id="save-wine-btn" type="button">
       Salva nel passaporto →
     </button>

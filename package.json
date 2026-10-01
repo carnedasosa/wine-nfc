@@ -16,7 +16,12 @@
     "test:db": "node scripts/test-db-isolated.cjs",
     "load:staging": "node scripts/load-staging.cjs",
     "predev": "npm run build",
-    "prestart": "npm run build"
+    "prestart": "npm run build",
+    "lint": "eslint app.js src api lib utils service-worker.js",
+    "typecheck": "tsc -p jsconfig.quality.json",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run verify:build",
+    "test:preview": "npm run build && node tests/helpers/quality-preview-server.cjs",
+    "verify:build": "node scripts/verify-build.cjs"
   },
   "keywords": [],
   "author": "",
@@ -28,12 +33,16 @@
     "prisma": "^6.19.3"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
     "express": "^5.2.1",
+    "globals": "16.5.0",
     "postcss": "^8.5.23",
+    "typescript": "5.9.3",
     "vitest": "^4.1.11"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=22.13.0 <23"
   },
   "overrides": {
     "deepmerge-ts": "8.0.0",

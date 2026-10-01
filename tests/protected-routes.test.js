@@ -4,6 +4,7 @@ const prisma = require('../lib/prisma');
 const tastingsHandler = require('../api/tastings');
 const dnaHandler = require('../api/dna');
 const updateProfileHandler = require('../api/users/[id]');
+const exchangeHandler = require('../api/auth/exchange');
 const { resetMemoryStoreForTests } = require('../lib/rate-limit');
 
 const SUBJECT = '11111111-1111-4111-8111-111111111111';
@@ -144,6 +145,33 @@ describe('isolamento route protette M1', () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.payload.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('la route DNA importa le regole condivise senza arrotondare 3.5 a una soglia', async () => {
+    const eventId = '11111111-1111-4111-8111-111111111111';
+    vi.spyOn(prisma.event, 'findUnique').mockResolvedValue({ id: eventId, stato: 'active' });
+    vi.spyOn(prisma.tasting, 'findMany').mockResolvedValue([3, 4].map((acidita, index) => ({
+      id: String(index), updatedAt: new Date(), wine: { nome: 'Test', cantina: 'Cantina' }, acidita, corpo: 3, persistenza: 2, emozione: 'Pace'
+    })));
+    vi.spyOn(prisma.dnaProfile, 'findUnique').mockRejectedValue(new Error('Database cache non disponibile'));
+    const res = responseDouble(); await dnaHandler(request('POST', { eventId }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.payload.stats.averages.acidita).toBe(3.5);
+    expect(res.payload.stats.tags).not.toContain('Vini tesi');
+    expect(res.payload.fallback).toBe(true);
+    expect(res.payload.dnaText).toContain('acidità 3.5/5');
+  });
+
+  it('Magic Link emette cookie preservando il nome del profilo esistente', async () => {
+    vi.spyOn(prisma, '$transaction').mockImplementation(operation => operation(prisma));
+    vi.spyOn(prisma.user, 'updateMany').mockResolvedValue({ count: 0 });
+    const update = vi.spyOn(prisma.user, 'update').mockResolvedValue({ id: USER_ID, nome: 'Nome scelto', email: 'ada@example.com' });
+    const res = responseDouble();
+    await exchangeHandler(request('POST', { accessToken: accessToken(), refreshToken: 'synthetic-refresh' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.payload.user.nome).toBe('Nome scelto');
+    expect(update.mock.calls[0][0].data).not.toHaveProperty('nome');
+    expect(res.headers['Set-Cookie']).toBeDefined();
   });
 
   it('profilo nega IDOR e non aggiorna il record di un altro utente', async () => {

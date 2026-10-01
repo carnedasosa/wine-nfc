@@ -2,13 +2,12 @@
 // UI / DNA — profilo sensoriale e condivisione sicura
 // ═══════════════════════════════════════════════════
 
-import { state } from '../state.js';
+import { state, captureSession, isCurrentSession } from '../state.js';
 import { API } from '../api.js';
+import { buildSensoryStats, describeSensoryStats } from '../domain/sensory.mjs';
 import {
   appendElement,
-  calculateAverage,
   clearElement,
-  getTopEmotions,
   renderEmptyState
 } from '../utils.js';
 
@@ -26,15 +25,6 @@ export function clearDnaCache() {
   setShareButtonLoading(true, 'Genera il tuo Wine DNA');
 }
 
-function generaDNAFallback(acidita, corpo) {
-  return 'Nei tuoi assaggi l’acidità media è ' + acidita + '/5 e il corpo medio è ' + corpo + '/5. È un riepilogo delle intensità registrate, non una misura delle tue preferenze.';
-}
-
-function rating(value) {
-  const numeric = Math.round(Number(value));
-  return Number.isFinite(numeric) ? Math.min(5, Math.max(1, numeric)) : 1;
-}
-
 function renderLoading(container) {
   clearElement(container);
   const card = appendElement(container, 'div', 'dna-profile-card');
@@ -48,8 +38,9 @@ function renderRadarRow(container, label, value) {
   appendElement(row, 'span', 'radar-bar-name', label);
   const track = appendElement(row, 'div', 'radar-bar-track');
   const fill = appendElement(track, 'div', 'radar-bar-fill');
-  fill.style.width = `${rating(value) / 5 * 100}%`;
-  appendElement(row, 'span', 'radar-bar-value', `${rating(value)}/5`);
+  const valid = Number.isFinite(value) && value >= 1 && value <= 5;
+  fill.style.width = `${valid ? value / 5 * 100 : 0}%`;
+  appendElement(row, 'span', 'radar-bar-value', valid ? `${value}/5` : '—');
 }
 
 function renderResult(container, dnaText, tags, cantine, averages) {
@@ -73,24 +64,8 @@ function renderResult(container, dnaText, tags, cantine, averages) {
   cantine.forEach(cantina => appendElement(chips, 'span', 'cantina-chip', cantina));
 }
 
-function buildTags(assaggi, avgAcidita, avgCorpo, topEmotions) {
-  const tags = [];
-  if (avgAcidita >= 4) tags.push('Vini tesi');
-  else if (avgAcidita <= 2) tags.push('Vini morbidi');
-  if (avgCorpo >= 4) tags.push('Struttura densa');
-  else if (avgCorpo <= 2) tags.push('Leggerezza');
-  topEmotions.forEach(emotion => tags.push(emotion));
-
-  assaggi.forEach(tasting => {
-    const territory = typeof tasting.vino?.territorio === 'string'
-      ? tasting.vino.territorio.split(',')[1]?.trim()
-      : '';
-    if (territory && !tags.includes(territory)) tags.push(territory);
-  });
-  return tags;
-}
-
 export async function renderDNA() {
+  const context = captureSession();
   const generation = ++dnaGeneration;
   const userId = state.utente.id;
   const eventId = state.eventId;
@@ -124,31 +99,21 @@ export async function renderDNA() {
   try {
     result = await API.getDNA(eventId);
     if (!result || !result.dnaText || !result.stats) throw new Error('Risposta DNA vuota');
+    const { tags, cantine, averages } = result.stats;
+    if (!Array.isArray(tags) || !tags.every(tag => typeof tag === 'string')
+      || !Array.isArray(cantine) || !cantine.every(name => typeof name === 'string')
+      || !averages || !['acidita', 'corpo', 'persistenza'].every(field => averages[field] === null
+        || (Number.isFinite(averages[field]) && averages[field] >= 1 && averages[field] <= 5))) {
+      throw new Error('Statistiche DNA non valide');
+    }
   } catch (error) {
     console.error('Errore backend DNA:', error);
     
-    // Fallback in case the server fails entirely
-    const averages = {
-      acidita: rating(calculateAverage(assaggi, 'acidita')),
-      corpo: rating(calculateAverage(assaggi, 'corpo')),
-      persistenza: rating(calculateAverage(assaggi, 'persistenza'))
-    };
-    const topEmotions = getTopEmotions(assaggi, 3);
-    const cantine = [...new Set(
-      assaggi
-        .map(tasting => tasting.vino?.cantina)
-        .filter(cantina => typeof cantina === 'string' && cantina)
-    )];
-    const tags = buildTags(assaggi, averages.acidita, averages.corpo, topEmotions);
-    
-    result = {
-      fallback: true,
-      dnaText: generaDNAFallback(averages.acidita, averages.corpo),
-      stats: { averages, topEmo: topEmotions, cantine, tags, assaggiCount: assaggi.length }
-    };
+    const stats = buildSensoryStats(assaggi);
+    result = { fallback: true, dnaText: describeSensoryStats(stats), stats };
   }
 
-  if (generation !== dnaGeneration || state.utente.id !== userId || state.eventId !== eventId) return;
+  if (generation !== dnaGeneration || state.utente.id !== userId || state.eventId !== eventId || !isCurrentSession(context)) return;
 
   renderResult(container, String(result.dnaText), result.stats.tags, result.stats.cantine, result.stats.averages);
   const label = appendElement(container, 'p', 'empty-state-text', result.fallback

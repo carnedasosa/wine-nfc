@@ -40,29 +40,7 @@ export function safeHexColor(value, fallback = '#6f3647') {
     : fallback;
 }
 
-export function calculateAverage(assaggi, field) {
-  if (!Array.isArray(assaggi) || assaggi.length === 0) return 0;
-  return Math.round(
-    assaggi.reduce((sum, tasting) => sum + Number(tasting[field] || 0), 0)
-      / assaggi.length
-      * 10
-  ) / 10;
-}
-
-export function getTopEmotions(assaggi, count = 3) {
-  if (!Array.isArray(assaggi) || assaggi.length === 0) return [];
-
-  const counts = new Map();
-  assaggi.forEach(tasting => {
-    const emotion = String(tasting.emozione || '');
-    if (emotion) counts.set(emotion, (counts.get(emotion) || 0) + 1);
-  });
-
-  return [...counts.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, count)
-    .map(([emotion]) => emotion);
-}
+export { calculateAverage, getTopEmotions } from './domain/sensory.mjs';
 
 export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);

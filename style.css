@@ -505,32 +505,6 @@ body {
 }
 .empty-state-text { font-size: 13px; line-height: 1.6; }
 
-/* Demo NFC button */
-.demo-nfc-btn {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--gold);
-  color: #0d0d0d;
-  border: none;
-  border-radius: 100px;
-  padding: 14px 28px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: 0 8px 32px rgba(201,168,76,0.3);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.15s, box-shadow 0.15s;
-  z-index: 20;
-}
-.demo-nfc-btn:active { transform: translateX(-50%) scale(0.96); box-shadow: 0 4px 16px rgba(201,168,76,0.2); }
-
 /* ───── WINE DETAIL ───── */
 #screen-wine { background: var(--bg); }
 
@@ -1034,35 +1008,7 @@ input[type="range"]:active::-webkit-slider-thumb {
 .nav-tab.active { color: var(--gold); }
 .nav-tab svg { width: 20px; height: 20px; }
 
-.nfc-ripple {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px; height: 80px;
-  border: 2px solid var(--gold);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 999;
-  opacity: 0;
-}
-.nfc-ripple.animate {
-  animation: nfc-magic 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-@keyframes nfc-magic {
-  0% { 
-    opacity: 1; 
-    transform: translate(-50%, -50%) scale(0.2); 
-    border-width: 40px; 
-  }
-  100% { 
-    opacity: 0; 
-    transform: translate(-50%, -50%) scale(8); 
-    border-width: 1px; 
-    box-shadow: inset 0 0 60px rgba(201,168,76,0.6), 0 0 100px rgba(201,168,76,0.4); 
-    background: rgba(201,168,76,0.15); 
-  }
-}
+
 
 /* ───── INSTAGRAM STORY LIQUID GLASS ───── */
 /* ═══════════════════════════════════════════════════

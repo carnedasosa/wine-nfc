@@ -4,15 +4,18 @@
 
 import {
   clearUserState,
+  captureSession,
+  isCurrentSession,
   loadState,
   setAuthenticatedUser,
+  setActiveEvent,
   setPendingVinoId,
   setViniDB,
   state,
   viniDB
 } from './src/state.js';
-import { flushOutbox } from './src/outbox.js';
 import { API, ApiError } from './src/api.js';
+import { startSessionSync } from './src/session-sync.js';
 import {
   cleanURL,
   getVinoFromURL,
@@ -32,10 +35,9 @@ import { renderHome as renderHomeView } from './src/ui/home.js';
 import { bindTutorialEvents, closeTutorial, openTutorial } from './src/ui/tutorial.js';
 import {
   openWine as openWineView,
-  requestContact,
+  retryWineLoad,
   saveWine as saveWineView,
   selectEmo,
-  simulateNfcTap as simulateNfcTapView,
   updateSlider
 } from './src/ui/wine.js';
 import { clearDnaCache, renderDNA, shareDNA } from './src/ui/dna.js';
@@ -74,10 +76,6 @@ function verifyOnboardingOtp() {
 
 function saveWine() {
   return saveWineView(renderHome);
-}
-
-function simulateNfcTap() {
-  simulateNfcTapView(openWine);
 }
 
 function returnToOnboarding(message) {
@@ -120,7 +118,6 @@ function bindStaticEvents() {
     button.addEventListener('click', () => showTab(button.dataset.tab));
   });
 
-  document.getElementById('simulate-nfc-btn').addEventListener('click', simulateNfcTap);
   document.getElementById('wine-back-btn').addEventListener('click', goBack);
   document.querySelectorAll('[data-rating]').forEach(slider => {
     slider.addEventListener('input', () => updateSlider(slider.dataset.rating, slider));
@@ -128,8 +125,8 @@ function bindStaticEvents() {
   document.querySelectorAll('[data-emotion]').forEach(button => {
     button.addEventListener('click', () => selectEmo(button, button.dataset.emotion));
   });
-  document.getElementById('request-contact-btn').addEventListener('click', requestContact);
   document.getElementById('save-wine-btn').addEventListener('click', saveWine);
+  document.getElementById('wine-retry-btn').addEventListener('click', retryWineLoad);
   document.getElementById('share-dna-btn').addEventListener('click', shareDNA);
 
   document.getElementById('settings-overlay').addEventListener('click', closeSettings);
@@ -165,16 +162,13 @@ function bindStaticEvents() {
     showScreen('onboarding');
     showToast('Sessione chiusa.');
   });
-  window.addEventListener('online', () => {
-    flushOutbox();
-  });
 }
 
 function routeInitialScreen() {
   const { vino: vinoId, eventId } = getVinoFromURL();
   
   if (eventId) {
-    state.eventId = eventId;
+    setActiveEvent(eventId);
   }
 
   if (!vinoId) {
@@ -229,16 +223,18 @@ function consumeMagicLinkHash() {
 
 async function initApp() {
   bindStaticEvents();
+  startSessionSync(() => returnToOnboarding('Sessione modificata in un’altra scheda. Ricarica per continuare.'));
   document.getElementById('loading-retry-btn').addEventListener('click', () => window.location.reload());
   showScreen('loading');
   document.getElementById('loading-status').textContent = '';
 
   const { eventId } = getVinoFromURL();
   if (eventId) {
-    state.eventId = eventId;
+    setActiveEvent(eventId);
   }
 
   const magicLinkTokens = consumeMagicLinkHash();
+  const initialContext = captureSession();
 
   const winesPromise = API.getWines(state.eventId);
   let authPromise;
@@ -253,12 +249,13 @@ async function initApp() {
   }
 
   const [winesResult, authResult] = await Promise.allSettled([winesPromise, authPromise]);
+  if (!isCurrentSession(initialContext)) return;
 
   if (winesResult.status === 'fulfilled') {
     const catalog = winesResult.value;
     setViniDB(catalog.wines);
     state.event = catalog.event;
-    state.eventId = catalog.event.id;
+    setActiveEvent(catalog.event.id);
     const url = new URL(window.location.href);
     url.searchParams.set('eventId', state.eventId);
     window.history.replaceState(null, '', url.pathname + url.search);
@@ -275,12 +272,15 @@ async function initApp() {
       const result = authResult.value;
       if (result?.user?.id) {
         setAuthenticatedUser(result.user);
+        const context = captureSession();
         try {
           await loadState(API.getTastings);
         } catch (error) {
+          if (!isCurrentSession(context)) return;
           console.error('Sincronizzazione assaggi non riuscita:', error);
           showToast('Accesso riuscito; gli assaggi saranno sincronizzati più tardi.', 'error');
         }
+        if (!isCurrentSession(context)) return;
         routeInitialScreen();
         openTutorial();
         return;
@@ -302,12 +302,15 @@ async function initApp() {
       const session = authResult.value;
       if (session?.user?.id) {
         setAuthenticatedUser(session.user);
+        const context = captureSession();
         try {
           await loadState(API.getTastings);
         } catch (error) {
+          if (!isCurrentSession(context)) return;
           console.error('Sincronizzazione assaggi non riuscita:', error);
           if (state.utente.id) showToast('Assaggi temporaneamente non disponibili', 'error');
         }
+        if (!isCurrentSession(context)) return;
       }
     } else {
       const error = authResult.reason;
@@ -321,10 +324,6 @@ async function initApp() {
     }
   }
 
-  if (navigator.onLine) {
-    flushOutbox();
-  }
-
   routeInitialScreen();
   openTutorial();
 }
@@ -332,12 +331,6 @@ async function initApp() {
 initApp();
 
 if ('serviceWorker' in navigator) {
-
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.type === 'FLUSH_OUTBOX') {
-      import('./src/outbox.js').then(m => m.flushOutbox());
-    }
-  });
 
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')

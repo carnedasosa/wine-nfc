@@ -1,5 +1,7 @@
 # Vino Passport — Piano di implementazione per sicurezza e production readiness
 
+> Aggiornamento del 1 ottobre 2026: per le criticità della revisione corrente, seguire il [piano di qualità software](docs/PIANO_QUALITA_SOFTWARE.md). Questo documento conserva il programma storico: baseline, stato delle milestone e scelte proposte vanno riconciliati con il codice e con le evidenze datate prima di considerarli attuali. I gate operativi ancora applicabili restano da verificare.
+
 > Stato: **proposta eseguibile**
 >
 > Data: **23 luglio 2026**

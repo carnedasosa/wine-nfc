@@ -2,7 +2,6 @@ node_modules/
 prisma/dev.db
 .env
 password-supabase.txt
-password-supabase.txt
 
 dist/
 generated/
@@ -11,3 +10,7 @@ generated/
 .vercel/
 *.sessions.json
 output/story-verification/
+
+__pycache__/
+*.pyc
+output/quality/

@@ -1,5 +1,24 @@
-// Test PostgreSQL reale in uno schema temporaneo, senza cambiare lo schema applicativo.
-require('dotenv').config({ quiet: true });
+// Test PostgreSQL locale dedicato. Non caricare mai .env o usare DATABASE_URL come fallback.
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) throw new Error('Eseguire solo dal laboratorio locale');
+if (!process.env.TEST_DATABASE_URL) throw new Error('Impostare TEST_DATABASE_URL su un database locale dedicato che termini con _test');
+let url;
+try { url = new URL(process.env.TEST_DATABASE_URL); }
+catch { throw new Error('TEST_DATABASE_URL non valida'); }
+if (!['postgres:', 'postgresql:'].includes(url.protocol)
+  || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  || !/^\/[a-zA-Z0-9_]+_test$/.test(url.pathname)) {
+  throw new Error('TEST_DATABASE_URL deve usare PostgreSQL loopback e un database con suffisso _test');
+}
+Object.assign(process.env, {
+  DATABASE_URL: url.toString(), DIRECT_URL: url.toString(), NODE_ENV: 'test',
+  SUPABASE_URL: '', SUPABASE_PUBLISHABLE_KEY: '', SUPABASE_ANON_KEY: '', SUPABASE_SECRET_KEY: '',
+  UPSTASH_REDIS_REST_URL: '', UPSTASH_REDIS_REST_TOKEN: '', RATE_LIMIT_KEY_SECRET: '',
+  GEMINI_API_KEY: '', AI_ENABLED: 'false', MAINTENANCE_MODE: 'false',
+  ACTIVE_EVENT_ID: '', APP_ORIGIN: 'http://127.0.0.1:3101'
+});
+// I provider sono simulati esplicitamente; qualunque richiesta reale è un errore.
+let unexpectedHttp = 0;
+global.fetch = async () => { unexpectedHttp++; throw new Error('HTTP esterno vietato nel collaudo database'); };
 const { PrismaClient } = require('../generated/prisma');
 const { saveTasting } = require('../lib/tasting-store');
 const { generateDna } = require('../lib/dna-generation');
@@ -8,25 +27,22 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-if (process.env.NODE_ENV === 'production' || process.env.VERCEL) throw new Error('Eseguire solo dal laboratorio locale');
 const namespace = 'wine_check_' + crypto.randomBytes(8).toString('hex');
 if (!/^wine_check_[a-f0-9]{16}$/.test(namespace)) throw new Error('Schema non valido');
-const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL);
 url.searchParams.set('schema', namespace);
 url.searchParams.set('connection_limit', '8');
 url.searchParams.set('pool_timeout', '20');
 const connection = url.toString();
 const admin = new PrismaClient({ datasources: { db: { url: connection } } });
 let created = false;
+let cleaned = false;
 const checks = [];
 let applicationDb;
 async function main() {
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${namespace}"`);
   created = true;
   execFileSync(process.execPath, [path.resolve('node_modules/prisma/build/index.js'), 'migrate', 'deploy'], {
-    // Schema casuale esclusivo del test: nessun altro migrator lavora qui.
-    // Il pooler remoto trattiene lock advisory di sessione: non usare questa opzione nel deploy reale.
-    env: { ...process.env, DATABASE_URL: connection, DIRECT_URL: connection, PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1' }, stdio: 'pipe', timeout: 90000
+    env: { ...process.env, DATABASE_URL: connection, DIRECT_URL: connection }, stdio: 'pipe', timeout: 90000
   });
   checks.push('Tutte le migrazioni applicate in schema isolato');
   const event = await admin.event.create({ data: { nome: 'Collaudo isolato', slug: namespace, inizio: new Date(Date.now()-3600000), fine: new Date(Date.now()+3600000), timezone: 'Europe/Rome', stato: 'active' } });
@@ -96,6 +112,38 @@ async function main() {
   assert.equal(res.statusCode,200);
   res = response(); await routes['/api/leaderboard'](request('GET'),res); assert.deepEqual(res.data,[]);
   checks.push('API reali: classifica vuota senza consenso, nickname dopo opt-in, ritiro immediato e no-store');
+  // Il collegamento Magic Link deve preservare un nome già scelto anche nel DB reale.
+  const { linkVerifiedIdentity } = require('../lib/user-account');
+  const identity = { id: subject, email: 'ada@example.test' };
+  const linked = await linkVerifiedIdentity(identity, 'ada', admin, { preserveExistingName: true });
+  assert.equal(linked.nome, 'Ada collaudo');
+  const exchange = require('../api/auth/exchange');
+  res = response();
+  await exchange(request('POST', { accessToken: 'mock_' + subject, refreshToken: 'fixture-refresh' }), res);
+  assert.equal(res.statusCode, 200); assert.equal(res.data.user.nome, 'Ada collaudo');
+  assert.ok(res.headers['Set-Cookie']);
+  checks.push('Magic Link: nome preservato dal servizio e dalla route reale con cookie');
+
+  res = response(); await routes['/api/dna'](request('POST', { eventId: event.id }), res);
+  assert.equal(res.statusCode, 200); assert.equal(res.data.fallback, true);
+  assert.equal(res.data.stats.averages.acidita, 5);
+  assert.ok(res.data.stats.tags.includes('Vini tesi'));
+  checks.push('DNA: import ESM da CommonJS, statistiche condivise e cache PostgreSQL');
+
+  const strangers = Array.from({ length: 101 }, () => ({ id: crypto.randomUUID(), nome: 'Privato' }));
+  await admin.user.createMany({ data: strangers });
+  await admin.eventParticipant.createMany({ data: strangers.map(person => ({ eventId: event.id, userId: person.id, nickname: 'Stesso nickname', consensoLeaderboard: true })) });
+  await admin.tasting.createMany({ data: strangers.map(person => ({ eventId: event.id, wineId: wine.id, userId: person.id, acidita: 3, corpo: 3, persistenza: 3, emozione: 'Pace' })) });
+  const ranks = [];
+  for (let page = 1; page <= 3; page++) {
+    const req = request('GET'); req.query = { eventId: event.id, page: String(page), limit: '50' };
+    res = response(); await routes['/api/leaderboard'](req, res);
+    assert.equal(res.statusCode, 200);
+    ranks.push(...res.data.map(row => row.rank));
+    assert.equal(JSON.stringify(res.data).includes('Privato'), false);
+  }
+  assert.deepEqual(ranks, Array.from({ length: 101 }, (_, i) => i + 1));
+  checks.push('Classifica reale: 101 partecipanti omonimi, tre pagine e rank continui');
   if (process.argv.includes('--browser')) {
     const express = require('express');
     const app = express(); app.use(express.json());
@@ -113,6 +161,7 @@ async function main() {
   }
 }
 main().then(() => {
+  assert.equal(unexpectedHttp, 0, 'Nessuna richiesta HTTP reale consentita');
   console.log(checks.join('\n'));
 }).catch(error => {
   // Non riversare stderr del client o credenziali di connessione nei log.
@@ -126,11 +175,12 @@ main().then(() => {
     const cleanup = new PrismaClient({ datasources: { db: { url: connection } }, errorFormat: 'minimal' });
     try {
       await cleanup.$executeRawUnsafe(`DROP SCHEMA "${namespace}" CASCADE`);
+      cleaned = true;
       console.log('Schema temporaneo rimosso; schema applicativo invariato.');
     } catch (error) { console.error('Pulizia da completare:', namespace, error.code); process.exitCode = 1; }
     finally { await cleanup.$disconnect(); }
   }
   await admin.$disconnect();
-  fs.mkdirSync('docs/audit-2026-09-29', { recursive: true });
-  fs.writeFileSync('docs/audit-2026-09-29/remediation-db-tests.json', JSON.stringify({ executedAt: new Date().toISOString(), passed: !process.exitCode, checks, cleanup: created }, null, 2));
+  fs.mkdirSync('output/quality', { recursive: true });
+  fs.writeFileSync('output/quality/db-tests.json', JSON.stringify({ executedAt: new Date().toISOString(), passed: !process.exitCode, checks, cleanup: { created, cleaned } }, null, 2));
 });

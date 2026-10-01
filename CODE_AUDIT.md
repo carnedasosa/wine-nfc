@@ -1,5 +1,7 @@
 # Code Audit Report
 
+> Documento storico precedente agli interventi di qualità. Per architettura e procedure correnti usare il [README](README.md) e il [piano qualità](docs/PIANO_QUALITA_SOFTWARE.md). Le valutazioni seguenti conservano il contesto originario e non attestano il codice attuale.
+
 ## 1. PANORAMICA DELL'ARCHITETTURA
 
 Il progetto "vino-passport" è strutturato come una Single Page Application (SPA) che si interfaccia con un backend Serverless.

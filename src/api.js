@@ -2,11 +2,21 @@
 // API — client HTTP same-origin con sessione a cookie
 // ═══════════════════════════════════════════════════
 
+import { captureSession, isCurrentSession } from './state.js';
+import { notifySessionChanged, withSessionLock } from './session-sync.js';
+
 const CSRF_COOKIE_NAMES = Object.freeze(['__Host-vino-csrf', 'vino_csrf']);
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 let refreshInFlight = null;
+let logoutInFlight = null;
+
+function assertRequestContext(context, allowDuringLogout = false) {
+  if (!isCurrentSession(context) || (logoutInFlight && !allowDuringLogout)) {
+    throw new ApiError('La sessione è cambiata. Ripeti l’operazione.', 0, { code: 'SESSION_CHANGED' });
+  }
+}
 
 export class ApiError extends Error {
   constructor(message, status, data = {}) {
@@ -18,6 +28,10 @@ export class ApiError extends Error {
 }
 
 function mapTasting(tasting) {
+  assertTasting(tasting);
+  if (!tasting.wine || typeof tasting.wine.id !== 'string') {
+    throw new ApiError('Risposta degli assaggi non valida. Riprova.', 502);
+  }
   return {
     vino: tasting.wine,
     version: tasting.version,
@@ -27,6 +41,14 @@ function mapTasting(tasting) {
     emozione: tasting.emozione,
     timestamp: new Date(tasting.createdAt)
   };
+}
+
+function assertTasting(tasting) {
+  if (!tasting || !Number.isInteger(tasting.version) || tasting.version < 1
+    || !['acidita', 'corpo', 'persistenza'].every(field => Number.isInteger(tasting[field]) && tasting[field] >= 1 && tasting[field] <= 5)
+    || typeof tasting.emozione !== 'string') {
+    throw new ApiError('Risposta del voto non valida. Riprova.', 502);
+  }
 }
 
 function getCookie(name) {
@@ -98,9 +120,14 @@ async function rawFetch(path, options = {}) {
 }
 
 async function refreshSession() {
+  if (logoutInFlight) return false;
   if (!CSRF_COOKIE_NAMES.some(name => getCookie(name))) return false;
   if (!refreshInFlight) {
-    refreshInFlight = rawFetch('/api/auth/refresh', { method: 'POST' })
+    const context = captureSession();
+    refreshInFlight = withSessionLock(() => {
+      assertRequestContext(context);
+      return rawFetch('/api/auth/refresh', { method: 'POST' });
+    })
       .then(async response => {
         if (response.ok) return true;
         const data = await readResponse(response);
@@ -129,6 +156,14 @@ function isIdempotent(method, body) {
 }
 
 async function request(path, options = {}, config = {}) {
+  const context = captureSession();
+  // Anche i retry mantengono il proprietario originale, indipendentemente dai cookie.
+  if (context.userId && !path.startsWith('/api/auth/')) {
+    const headers = new Headers(options.headers);
+    headers.set('X-Vino-User', context.userId);
+    options = { ...options, headers };
+  }
+  const assertCurrent = () => assertRequestContext(context, config.allowDuringLogout);
   const {
     retryAuth = true,
     announceAuthFailure = true
@@ -145,11 +180,15 @@ async function request(path, options = {}, config = {}) {
   while (true) {
     response = undefined;
     try {
+      assertCurrent();
       response = await rawFetch(path, options);
+      assertCurrent();
 
       if (response.status === 401 && retryAuth) {
         const refreshed = await refreshSession();
+        assertCurrent();
         if (refreshed) response = await rawFetch(path, options);
+        assertCurrent();
       }
       
       if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429)) {
@@ -178,8 +217,10 @@ async function request(path, options = {}, config = {}) {
   }
 
   const data = await readResponse(response);
+  assertCurrent();
 
   if (!response.ok) {
+    if (data?.code === 'SESSION_CHANGED') announceExpiredSession();
     if (response.status === 401 && announceAuthFailure) {
       announceExpiredSession();
     }
@@ -189,7 +230,7 @@ async function request(path, options = {}, config = {}) {
     throw new ApiError(message, response.status, data || {});
   }
 
-  return data;
+  return config.transformResponse ? config.transformResponse(data, response) : data;
 }
 
 export const API = {
@@ -211,22 +252,34 @@ export const API = {
   },
 
   async exchangeTokens(accessToken, refreshToken) {
-    return request('/api/auth/exchange', {
-      method: 'POST',
-      body: { accessToken, refreshToken }
-    }, {
-      retryAuth: false,
-      announceAuthFailure: false
+    const context = captureSession();
+    return withSessionLock(async () => {
+      assertRequestContext(context);
+      const result = await request('/api/auth/exchange', {
+        method: 'POST',
+        body: { accessToken, refreshToken }
+      }, {
+        retryAuth: false,
+        announceAuthFailure: false
+      });
+      notifySessionChanged();
+      return result;
     });
   },
 
   async verifyOtp(nome, email, token) {
-    return request('/api/auth/verify-otp', {
-      method: 'POST',
-      body: { nome, email, token }
-    }, {
-      retryAuth: false,
-      announceAuthFailure: false
+    const context = captureSession();
+    return withSessionLock(async () => {
+      assertRequestContext(context);
+      const result = await request('/api/auth/verify-otp', {
+        method: 'POST',
+        body: { nome, email, token }
+      }, {
+        retryAuth: false,
+        announceAuthFailure: false
+      });
+      notifySessionChanged();
+      return result;
     });
   },
 
@@ -238,10 +291,24 @@ export const API = {
   },
 
   async logout() {
-    return request('/api/auth/logout', { method: 'POST' }, {
-      retryAuth: false,
-      announceAuthFailure: false
-    });
+    if (!logoutInFlight) {
+      const context = captureSession();
+      logoutInFlight = (async () => {
+        // Attendere le intestazioni del refresh già avviato: il logout deve
+        // cancellare i cookie dopo l'eventuale risposta che li rinnova.
+        await refreshInFlight?.catch(() => {});
+        assertRequestContext(context, true);
+        return withSessionLock(async () => {
+          assertRequestContext(context, true);
+          const result = await request('/api/auth/logout', { method: 'POST' }, {
+            retryAuth: false, announceAuthFailure: false, allowDuringLogout: true
+          });
+          notifySessionChanged();
+          return result;
+        });
+      })().finally(() => { logoutInFlight = null; });
+    }
+    return logoutInFlight;
   },
 
   async updateUser(id, nome) {
@@ -254,13 +321,19 @@ export const API = {
   async getTastings(eventId) {
     const url = eventId ? `/api/tastings?eventId=${encodeURIComponent(eventId)}` : '/api/tastings';
     const tastings = await request(url);
-    return Array.isArray(tastings) ? tastings.map(mapTasting) : [];
+    if (!Array.isArray(tastings)) throw new ApiError('Risposta degli assaggi non valida. Riprova.', 502);
+    return tastings.map(mapTasting);
   },
 
   async saveTasting(payload) {
     return request('/api/tastings', {
       method: 'POST',
       body: payload
+    }, {
+      transformResponse: (data, response) => {
+        assertTasting(data);
+        return { ...data, replayed: response.headers.get('Idempotency-Replayed') === 'true' };
+      }
     });
   },
 
@@ -279,7 +352,7 @@ export const API = {
     return request('/api/participation', { method: 'PUT', body });
   },
 
-  async getLeaderboard(eventId) {
-    return request(`/api/leaderboard?eventId=${encodeURIComponent(eventId)}`);
+  async getLeaderboard(eventId, page = 1, limit = 50) {
+    return request(`/api/leaderboard?eventId=${encodeURIComponent(eventId)}&page=${page}&limit=${limit}`);
   }
 };
