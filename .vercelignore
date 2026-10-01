@@ -8,3 +8,4 @@ report*.json
 generated/
 dist/
 api/auth/mock-login.js
+api/health.js
